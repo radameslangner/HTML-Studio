@@ -1,0 +1,12 @@
+{
+  "disciplina": "Matematica",
+  "assunto": "Aritmetica",
+  "titulo": "Operacoes",
+  "subtitulo": "Subtracao",
+  "slug": "matematicaAritmeticaOperacoesSubtracao",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">Matematica|Aritmetica|Operacoes|Subtracao</div><div class=\"canvas-box\" data-id=\"box-17792070289170.353028248670492\" style=\"position: absolute; left: 622px; top: 384px; width: 151px; height: 149px; z-index: 3;\"><h3>Operações</h3><ol><li><p>Adição</p></li><li><p>Subtração</p></li><li><p>Multiplicação</p></li><li><p>Divisão</p></li></ol><p></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-05-19T16:11:37.374Z"
+}

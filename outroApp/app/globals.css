@@ -1,0 +1,346 @@
+@import "tailwindcss";
+
+:root {
+  /* Colors & Palette */
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --paper-bg: #ffffff;
+  --paper-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.15);
+
+  /* Dimensions (A5 Landscape - 210 x 148.5) */
+  --paper-width: 210mm;
+  --paper-height: 148.5mm;
+  --paper-radius: 4px;
+
+  /* Spacing */
+  --workspace-padding: 60px;
+  --page-gap: 40px;
+  --header-height: 30mm;
+  --canvas-padding: 10mm;
+  --paper-padding-x: var(--canvas-padding);
+  --paper-padding-y: 0mm;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* Layout Structure */
+.viewport-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.editor-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--workspace-padding);
+  overflow-y: auto;
+  background: radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%);
+  scroll-behavior: smooth;
+}
+
+.pages-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-gap);
+  padding-bottom: 200px;
+  /* Space for the bottom toolbar/info */
+  margin: 0 auto;
+  /* Centering horizontally */
+}
+
+/* The Paper Component */
+.paper {
+  width: var(--paper-width);
+  height: var(--paper-height);
+  background: var(--paper-bg);
+  box-shadow: var(--paper-shadow);
+  border-radius: var(--paper-radius);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: none;
+  flex-shrink: 0;
+}
+
+/* Content Area inside Paper */
+.paper-inner {
+  flex: 1;
+  padding: var(--paper-padding-y) var(--paper-padding-x);
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Metadata inside Paper */
+.paper-header {
+  height: var(--header-height);
+  padding: 0 var(--paper-padding-x);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  outline: none;
+  height: 100%;
+}
+
+.ProseMirror h1 {
+  font-size: 2.25rem;
+  font-weight: 900;
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.ProseMirror h2 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  margin: 0;
+  color: #1e293b;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.ProseMirror h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: #334155;
+}
+
+.ProseMirror p {
+  margin: 0;
+  line-height: 1.5;
+  color: #475569;
+  font-size: 1rem;
+}
+
+/* List and Table styles */
+.ProseMirror ul:not([data-type="taskList"]) {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+  margin-top: 0.3rem;
+  cursor: pointer;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid #e2e8f0;
+  padding: 6px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: #f8fafc;
+}
+
+/* Metadata Field Styles in Editor */
+/* Metadata Field Styles in Editor - Single Line Path */
+.metadata-line-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-family: var(--font-inter);
+  margin-bottom: 0.5rem !important;
+}
+
+.metadata-assunto,
+.metadata-titulo,
+.metadata-subtitulo {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.metadata-assunto {
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metadata-titulo {
+  color: #0f172a;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.metadata-subtitulo {
+  color: #3b82f6;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.metadata-assunto:hover,
+.metadata-titulo:hover,
+.metadata-subtitulo:hover {
+  background-color: #f1f5f9;
+  box-shadow: 0 0 0 2px #e2e8f0;
+}
+
+/* Print Overrides */
+@media print {
+  :root {
+    --background: white;
+    --paper-shadow: none;
+    --paper-radius: 0;
+    --workspace-padding: 0;
+  }
+
+  * {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body {
+    background: var(--background);
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .editor-workspace {
+    background: none !important;
+    display: block !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-container {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .print-page {
+    width: 100% !important;
+    height: 148.5mm !important;
+    min-height: 148.5mm !important;
+    page-break-after: avoid !important;
+    overflow: hidden !important;
+    background: white !important;
+    position: relative !important;
+    margin: 0 auto !important;
+  }
+
+  .print-page:nth-child(even) {
+    page-break-after: always !important;
+  }
+
+  /* Preserve absolute positioning in print */
+  .canvas-box {
+    position: absolute !important;
+    page-break-inside: avoid !important;
+  }
+
+  .drawing-layer {
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+/* Drag Handle Styles */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  cursor: grab;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='12' r='1'/%3E%3Ccircle cx='9' cy='5' r='1'/%3E%3Ccircle cx='9' cy='19' r='1'/%3E%3Ccircle cx='15' cy='12' r='1'/%3E%3Ccircle cx='15' cy='5' r='1'/%3E%3Ccircle cx='15' cy='19' r='1'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.drag-handle:hover {
+  background-color: #f1f5f9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='12' r='1'/%3E%3Ccircle cx='9' cy='5' r='1'/%3E%3Ccircle cx='9' cy='19' r='1'/%3E%3Ccircle cx='15' cy='12' r='1'/%3E%3Ccircle cx='15' cy='5' r='1'/%3E%3Ccircle cx='15' cy='19' r='1'/%3E%3C/svg%3E");
+}
