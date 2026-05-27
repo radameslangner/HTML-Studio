@@ -193,14 +193,39 @@ export default function Home() {
     setPages(newPages);
   };
 
-  const handleRemovePage = () => {
+  const handleRemovePage = (index?: number) => {
     if (pages.length <= 1) return;
     if (confirm('Excluir esta página permanentemente?')) {
-      const newPages = pages.filter((_, i) => i !== currentPage);
+      const targetIndex = index !== undefined ? index : currentPage;
+      const newPages = pages.filter((_, i) => i !== targetIndex);
       setPages(newPages);
       if (currentPage >= newPages.length) {
         setCurrentPage(Math.max(0, newPages.length - 1));
+      } else if (targetIndex < currentPage) {
+        setCurrentPage(currentPage - 1);
       }
+    }
+  };
+
+  const handleMovePage = (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === pages.length - 1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const newPages = [...pages];
+    
+    // Swap pages
+    const temp = newPages[index];
+    newPages[index] = newPages[targetIndex];
+    newPages[targetIndex] = temp;
+    
+    setPages(newPages);
+
+    // Follow the page focus
+    if (currentPage === index) {
+      setCurrentPage(targetIndex);
+    } else if (currentPage === targetIndex) {
+      setCurrentPage(index);
     }
   };
 
@@ -269,6 +294,7 @@ export default function Home() {
             onAddPage={handleAddPage}
             onRemovePage={handleRemovePage}
             onUpdatePage={handleUpdatePage}
+            onMovePage={handleMovePage}
             onSave={handleSave}
             onPrint={() => setTimeout(() => window.print(), 1000)}
             disciplina={disciplina}

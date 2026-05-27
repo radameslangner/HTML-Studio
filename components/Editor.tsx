@@ -25,7 +25,7 @@ import { FontSize } from '../lib/FontSizeExtension';
 import { Fraction } from '../lib/FractionNode';
 import { Root } from '../lib/RootNode';
 import { Rnd } from 'react-rnd';
-import { Plus, Trash2, Layers } from 'lucide-react';
+import { Plus, Trash2, Layers, ChevronUp, ChevronDown } from 'lucide-react';
 import Toolbar from './Toolbar';
 import { generatePrintableHtml, downloadHtmlFile } from '../lib/HtmlGenerator';
 
@@ -153,7 +153,10 @@ const Paper = ({
   titulo, 
   subtitulo,
   onRemove,
-  isLast
+  onMove,
+  isFirst,
+  isLast,
+  showGrid
 }: any) => {
   const [boxes, setBoxes] = useState<CanvasBox[]>([]);
   const [paths, setPaths] = useState<DrawingPath[]>([]);
@@ -246,15 +249,40 @@ const Paper = ({
 
   return (
     <div className="relative group/page">
-      {/* Botão de Remover Página (Apenas se não for a única) */}
-      <div className="absolute -left-12 top-0 opacity-0 group-hover/page:opacity-100 transition-opacity no-print">
-        <button 
-          onClick={onRemove}
-          className="p-2 rounded-xl bg-white text-slate-400 hover:text-red-600 border border-slate-200 shadow-sm hover:shadow-md transition-all"
-          title="Remover Página"
-        >
-          <Trash2 size={20} />
-        </button>
+      {/* Botões de Ações na Lateral Esquerda */}
+      <div className="absolute -left-12 top-0 opacity-0 group-hover/page:opacity-100 transition-opacity no-print flex flex-col gap-2 z-[60]">
+        {/* Mover para Cima */}
+        {!isFirst && (
+          <button 
+            onClick={() => onMove?.('up')}
+            className="p-2 rounded-xl bg-white text-slate-500 hover:text-blue-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
+            title="Mover Página para Cima"
+          >
+            <ChevronUp size={20} />
+          </button>
+        )}
+        
+        {/* Mover para Baixo */}
+        {!isLast && (
+          <button 
+            onClick={() => onMove?.('down')}
+            className="p-2 rounded-xl bg-white text-slate-500 hover:text-blue-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
+            title="Mover Página para Baixo"
+          >
+            <ChevronDown size={20} />
+          </button>
+        )}
+
+        {/* Remover Página (Apenas se não for a única) */}
+        {(!isFirst || !isLast) && (
+          <button 
+            onClick={onRemove}
+            className="p-2 rounded-xl bg-white text-slate-400 hover:text-red-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
+            title="Remover Página"
+          >
+            <Trash2 size={20} />
+          </button>
+        )}
       </div>
 
       <div 
@@ -263,7 +291,7 @@ const Paper = ({
         onDragOver={(e) => e.preventDefault()}
       >
         <div 
-          className={`paper-inner w-full relative bg-white ${isPenActive ? 'cursor-crosshair' : ''}`}
+          className={`paper-inner w-full relative bg-white ${isPenActive ? 'cursor-crosshair' : ''} ${showGrid ? 'show-grid' : ''}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -331,6 +359,8 @@ const Paper = ({
                 key={box.id}
                 position={{ x: box.x, y: box.y }}
                 size={{ width: box.width, height: box.height }}
+                dragGrid={showGrid ? [8, 8] : undefined}
+                resizeGrid={showGrid ? [8, 8] : undefined}
                 onDragStop={(e, d) => updateBox(box.id, { x: d.x, y: d.y })}
                 onResizeStop={(e, direction, ref, delta, position) => {
                   updateBox(box.id, {
@@ -384,6 +414,7 @@ interface EditorProps {
   onAddPage: () => void;
   onRemovePage: (index: number) => void;
   onUpdatePage: (index: number, html: string) => void;
+  onMovePage: (index: number, direction: 'up' | 'down') => void;
   onSave: () => void;
   onPrint: () => void;
   disciplina: string;
@@ -400,12 +431,13 @@ interface EditorProps {
 }
 
 const Editor: React.FC<EditorProps> = ({
-  pages, currentPage, onPageChange, onAddPage, onRemovePage, onUpdatePage, onSave, onPrint,
+  pages, currentPage, onPageChange, onAddPage, onRemovePage, onUpdatePage, onMovePage, onSave, onPrint,
   disciplina, assunto, titulo, subtitulo, onMetadataChange, isSaving, saveSuccess, status, onStatusChange, initialContent, availableDisciplines
 }) => {
   const [isPenActive, setIsPenActive] = useState(false);
   const [penColor, setPenColor] = useState('#3b82f6');
   const [activeEditor, setActiveEditor] = useState<any>(null);
+  const [showGrid, setShowGrid] = useState(true);
 
   const capitalizeFirst = (str: string) => {
     if (!str) return str;
@@ -461,6 +493,8 @@ const Editor: React.FC<EditorProps> = ({
           penColor={penColor}
           onPenColorChange={setPenColor}
           onClearDrawings={() => {}} 
+          showGrid={showGrid}
+          onToggleGrid={() => setShowGrid(!showGrid)}
         />
 
         {/* Editor Metadata Bar */}
@@ -528,7 +562,10 @@ const Editor: React.FC<EditorProps> = ({
               titulo={titulo}
               subtitulo={subtitulo}
               onRemove={() => onRemovePage(idx)}
+              onMove={(direction: 'up' | 'down') => onMovePage(idx, direction)}
+              isFirst={idx === 0}
               isLast={idx === pages.length - 1}
+              showGrid={showGrid}
             />
           ))}
         </div>

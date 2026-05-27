@@ -105,6 +105,12 @@ body {
   position: relative;
 }
 
+/* Elegant Figma-like dotted grid canvas */
+.paper-inner.show-grid {
+  background-size: 8px 8px;
+  background-image: radial-gradient(circle, #cbd5e1 0.75px, transparent 0.75px);
+}
+
 /* Metadata inside Paper */
 .paper-header {
   height: var(--header-height);

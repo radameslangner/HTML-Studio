@@ -37,7 +37,8 @@ import {
   Pencil,
   Eraser,
   MousePointer2,
-  FileCode
+  FileCode,
+  Grid
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -54,6 +55,8 @@ interface ToolbarProps {
   penColor: string;
   onPenColorChange: (color: string) => void;
   onClearDrawings: () => void;
+  showGrid: boolean;
+  onToggleGrid: () => void;
 }
 
 const ToolbarButton = ({ onClick, isActive, title, children, disabled = false, danger = false, draggable = false, onDragStart }: any) => (
@@ -87,7 +90,7 @@ const DEFAULT_COLORS = [
 
 const Toolbar: React.FC<ToolbarProps> = ({
   editor, onSave, onPrint, onClear, onExportHtml, onInsertImage, isSaving, saveSuccess,
-  isPenActive, onTogglePen, penColor, onPenColorChange, onClearDrawings
+  isPenActive, onTogglePen, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
 }) => {
   // Estado para armazenar as 5 cores, carregando do localStorage se existirem
   const [presetColors, setPresetColors] = useState(DEFAULT_COLORS);
@@ -607,6 +610,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
         />
         <ToolbarButton onClick={onClearDrawings} danger title="Apagar todos os desenhos">
           <Eraser size={16} />
+        </ToolbarButton>
+      </div>
+
+      <Divider />
+
+      {/* 11. Auxiliares de Design */}
+      <div className="flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-100">
+        <ToolbarButton
+          onClick={onToggleGrid}
+          isActive={showGrid}
+          title="Grade Pontilhada (Alternar guias)"
+        >
+          <Grid size={16} />
         </ToolbarButton>
       </div>
 
