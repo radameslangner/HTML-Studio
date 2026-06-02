@@ -38,7 +38,8 @@ import {
   Eraser,
   MousePointer2,
   FileCode,
-  Grid
+  Grid,
+  Sliders
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -79,6 +80,8 @@ const Divider = () => <div className="w-px h-6 bg-slate-200 mx-1" />;
 
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 30, 36, 48, 64];
 
+const LINE_HEIGHTS = [0.5, 1.0, 1.25, 1.5, 1.75, 2.0];
+
 // Cores padrão iniciais (valores estabelecidos em Hex/RGB)
 const DEFAULT_COLORS = [
   { name: 'Preto Profundo', value: '#1e293b', rgb: 'rgb(30, 41, 59)' },
@@ -105,6 +108,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [showRootDialog, setShowRootDialog] = useState(false);
   const [rootIndex, setRootIndex] = useState('');
   const [rootRadicand, setRootRadicand] = useState('');
+  const [showLineHeightDialog, setShowLineHeightDialog] = useState(false);
+  const [customLineHeight, setCustomLineHeight] = useState('1.5');
 
   // Carregar cores do localStorage após a montagem do componente no cliente
   useEffect(() => {
@@ -208,6 +213,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     (editor.chain().focus() as any).insertRoot({ index: indexText, radicand: radicandText }).run();
     closeRootDialog();
+  };
+
+  const openLineHeightDialog = () => {
+    if (!editor) return;
+    const currentNode = editor.state.selection.$from.parent;
+    const attrs = currentNode?.attrs || {};
+    const height = attrs.lineHeight || '1.5';
+    setCustomLineHeight(height.toString());
+    setShowLineHeightDialog(true);
+  };
+
+  const closeLineHeightDialog = () => {
+    setShowLineHeightDialog(false);
+    setCustomLineHeight('1.5');
+  };
+
+  const applyLineHeight = (height: string) => {
+    if (!editor) return;
+    (editor.chain().focus() as any).setLineHeight(height.toString()).run();
+    closeLineHeightDialog();
+  };
+
+  const applyCustomLineHeight = () => {
+    const height = customLineHeight.trim();
+    if (!height || isNaN(parseFloat(height))) return;
+    applyLineHeight(height);
   };
 
 
@@ -369,6 +400,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton disabled={!editor} onClick={increaseFontSize} title="Aumentar Tamanho (A+)">
           <span className="font-bold text-[18px]">A+</span>
         </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={openLineHeightDialog} title="Altura da Linha">
+          <Sliders size={16} />
+        </ToolbarButton>
       </div>
 
       <Divider />
@@ -467,6 +501,60 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 </button>
                 <button
                   onClick={closeRootDialog}
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showLineHeightDialog && (
+          <div className="absolute top-full left-0 mt-2 z-50 w-max rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+            <div className="flex flex-col gap-3">
+              <label className="text-xs font-medium text-slate-500 uppercase">Altura da Linha</label>
+              
+              {/* Valores Pré-definidos */}
+              <div className="flex flex-col gap-2">
+                {LINE_HEIGHTS.map(height => (
+                  <button
+                    key={height}
+                    onClick={() => applyLineHeight(height.toString())}
+                    className="text-left px-3 py-2 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-300 text-sm font-medium text-slate-700 transition-colors"
+                  >
+                    {height.toFixed(2)}x
+                  </button>
+                ))}
+              </div>
+
+              {/* Divisor */}
+              <div className="h-px bg-slate-200" />
+
+              {/* Campo Customizado */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Valor Customizado</label>
+                <input
+                  value={customLineHeight}
+                  onChange={e => setCustomLineHeight(e.target.value)}
+                  className="w-32 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-500"
+                  placeholder="ex: 2.5"
+                  type="number"
+                  step="0.05"
+                  min="0.5"
+                />
+              </div>
+
+              {/* Botões */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={applyCustomLineHeight}
+                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Aplicar
+                </button>
+                <button
+                  onClick={closeLineHeightDialog}
                   className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-600 hover:bg-slate-50"
                 >
                   Cancelar

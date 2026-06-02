@@ -132,7 +132,7 @@ export const generatePrintableHtml = (
         h1 { font-size: 28px; font-weight: 900; margin: 0; color: #0f172a; line-height: 1; }
         h2 { font-size: 24px; font-weight: 800; margin: 0; color: #1e293b; line-height: 1; }
         h3 { font-size: 20px; font-weight: 700; margin: 0; color: #334155; line-height: 1.1; }
-        p { margin: 0; line-height: 1.25; color: #475569; }
+        p { margin: 0 0 0.5rem 0; line-height: 1.5; color: #475569; }
         p:empty { display: none; }
         ol, ul { margin: 0; padding-left: 18px; }
         li { margin: 0; padding: 0; }
@@ -165,8 +165,42 @@ export const generatePrintableHtml = (
 <body>
     <div class="print-container">
         ${pages.map((html, index) => {
-          // Limpeza básica do HTML
-          const cleanHtml = html.replace(/<div class="metadata-header">[\s\S]*?<\/div>/, '');
+          // Limpeza robusta do HTML usando DOMParser
+          let cleanHtml = html;
+          
+          // Remove metadata
+          cleanHtml = cleanHtml.replace(/<div class="metadata-header">[\s\S]*?<\/div>/, '');
+          
+          // Parse e extrai apenas o conteúdo dos canvas-box
+          if (typeof window !== 'undefined') {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(cleanHtml, 'text/html');
+            
+            // Extrai conteúdo de todos os canvas-box
+            const boxes = doc.querySelectorAll('.canvas-box');
+            const contents: string[] = [];
+            
+            boxes.forEach(box => {
+              // Pega o innerHTML e remove apenas espaços excessivos no INÍCIO e FIM
+              // Preserva as quebras de linha criadas durante a edição
+              let inner = box.innerHTML
+                .replace(/^\s+/, '') // Remove espaços/quebras no início
+                .replace(/\s+$/, ''); // Remove espaços/quebras no final
+              
+              contents.push(inner);
+            });
+            
+            cleanHtml = contents.join('\n');
+          } else {
+            // Fallback para servidor (não deve chegar aqui em modo client)
+            cleanHtml = cleanHtml
+              .replace(/<div class="canvas-box"[^>]*>[\s\S]*?<\/div>/g, (match) => {
+                return match.replace(/<div class="canvas-box"[^>]*>/, '').replace(/<\/div>$/, '');
+              });
+          }
+          
+          // Remove estilos inline
+          cleanHtml = cleanHtml.replace(/\s+style="[^"]*"/g, '').trim();
           
           return `
         <div class="print-page">

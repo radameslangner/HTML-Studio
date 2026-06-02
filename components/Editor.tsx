@@ -22,8 +22,10 @@ import { Superscript } from '@tiptap/extension-superscript';
 import { Strike } from '@tiptap/extension-strike';
 import { CodeBlock } from '@tiptap/extension-code-block';
 import { FontSize } from '../lib/FontSizeExtension';
+import { LineHeight } from '../lib/LineHeightExtension';
 import { Fraction } from '../lib/FractionNode';
 import { Root } from '../lib/RootNode';
+import { MarkdownPaste } from '../lib/MarkdownPasteExtension';
 import { Rnd } from 'react-rnd';
 import { Plus, Trash2, Layers, ChevronUp, ChevronDown } from 'lucide-react';
 import Toolbar from './Toolbar';
@@ -114,7 +116,7 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
     extensions: [
       StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Highlight.configure({ multicolor: true }), Link, Image, Table, TableRow, TableHeader, TableCell,
-      TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, Fraction, Root
+      TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
     ],
     content: box.content,
     immediatelyRender: false,
