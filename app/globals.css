@@ -82,26 +82,12 @@ body {
   flex-shrink: 0;
 }
 
-.paper-inner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 20;
-  background-image:
-    linear-gradient(to bottom, #585a5d 1px, transparent 1px),
-    linear-gradient(to bottom, #585a5d 1px, transparent 1px),
-    linear-gradient(to right, #585a5d 1px, transparent 1px);
-  background-repeat: no-repeat;
-  background-position: 10mm 0, calc(100% - 10mm) 0, 10mm calc(100% - 10mm);
-  background-size: 1px 100%, 1px 100%, calc(100% - 20mm) 1px;
-}
-
-/* Content Area inside Paper */
+/* Canvas zone — ocupa o restante da altura após o header */
 .paper-inner {
   flex: 1;
+  min-height: 0;
   padding: var(--paper-padding-y) var(--paper-padding-x);
-  overflow-y: auto;
+  overflow: hidden;
   position: relative;
 }
 

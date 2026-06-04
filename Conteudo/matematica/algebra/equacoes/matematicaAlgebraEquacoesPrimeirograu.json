@@ -1,0 +1,12 @@
+{
+  "disciplina": "matematica",
+  "assunto": "algebra",
+  "titulo": "equacoes",
+  "subtitulo": "primeirograu",
+  "slug": "matematicaAlgebraEquacoesPrimeirograu",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">matematica|algebra|equacoes|primeirograu</div><div class=\"canvas-box\" data-id=\"box-17804109343470.30317912713522766\" style=\"position: absolute; left: 33px; top: 73px; width: 690px; height: 422px; z-index: 4;\"><p>Equações do 1º Grau</p><p> </p><p>Forma geral:</p><p>ax+b=0</p><p>onde:</p><p>a  =0 incógnita x Método</p><p>Isolar a incógnita.</p><p>Exemplo 2x+6=18</p><p>Subtrai 6:</p><p>2x=12</p><p>Divide por 2:</p><p>x=6 Exemplo típico de concurso</p><p>A soma de um número com 15 é 40.</p><p>x+15=40 x=25</p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-06-02T14:36:03.380Z"
+}

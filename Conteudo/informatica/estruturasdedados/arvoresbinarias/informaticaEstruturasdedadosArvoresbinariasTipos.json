@@ -21,5 +21,5 @@
     "<div class=\"metadata-header\" style=\"display:none;\">informatica|estruturasdedados|arvoresbinarias|tipos</div><div class=\"canvas-box\" data-id=\"box-17804069237230.31627700848680074\" style=\"position: absolute; left: 33px; top: 63px; width: 670px; height: 336px; z-index: 30;\"><h3 style=\"line-height: 1.5;\">Percurso em Largura (BFS)</h3><h3><span style=\"color: rgb(205, 92, 92);\">Visita nível por nível. </span>Mesmo que<span style=\"color: rgb(205, 92, 92);\"> </span><span style=\"color: rgb(65, 139, 114);\"><strong><em><u>heap sort </u></em></strong></span></h3><pre><code></code></pre><pre><code>        A\n       / \\\n      B   C\n     / \\\n    D   E</code></pre><p style=\"line-height: 2;\">Resultado: <strong>A B C D E</strong></p><p style=\"line-height: 2;\">Utiliza: <span style=\"color: rgb(205, 92, 92);\"><strong><em><u>Fila</u></em></strong></span></p><p style=\"line-height: 3;\">👉 O array do heap é armazenado exatamente em ordem de níveis (level-order).</p></div>"
   ],
   "status": "study",
-  "updatedAt": "2026-06-02T14:03:10.929Z"
+  "updatedAt": "2026-06-02T16:04:08.695Z"
 }

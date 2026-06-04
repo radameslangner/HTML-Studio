@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Underline } from '@tiptap/extension-underline';
@@ -27,7 +27,7 @@ import { Fraction } from '../lib/FractionNode';
 import { Root } from '../lib/RootNode';
 import { MarkdownPaste } from '../lib/MarkdownPasteExtension';
 import { Rnd } from 'react-rnd';
-import { Plus, Trash2, Layers, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Layers, ChevronUp, ChevronDown, Square } from 'lucide-react';
 import Toolbar from './Toolbar';
 import { generatePrintableHtml, downloadHtmlFile } from '../lib/HtmlGenerator';
 
@@ -47,6 +47,10 @@ interface CanvasBox {
   height: number | string;
   zIndex: number;
   content: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderStyle?: string;
+  borderRadius?: number;
 }
 
 // --- Utils ---
@@ -95,18 +99,160 @@ const parseHtmlToBoxes = (html: string): CanvasBox[] => {
       height: htmlEl.style.height === 'auto' ? 'auto' : parseInt(htmlEl.style.height) || 'auto',
       zIndex: parseInt(htmlEl.style.zIndex) || 1,
       content: htmlEl.innerHTML,
+      borderColor: htmlEl.getAttribute('data-border-color') || undefined,
+      borderWidth: htmlEl.getAttribute('data-border-width') ? parseInt(htmlEl.getAttribute('data-border-width')!) : undefined,
+      borderStyle: htmlEl.getAttribute('data-border-style') || undefined,
+      borderRadius: htmlEl.getAttribute('data-border-radius') ? parseInt(htmlEl.getAttribute('data-border-radius')!) : undefined,
     };
   });
 };
 
 const serializeBoxesToHtml = (boxes: CanvasBox[], paths: DrawingPath[], metadataStr: string): string => {
-  const boxesHtml = boxes.map(box => `<div class="canvas-box" data-id="${box.id}" style="position: absolute; left: ${box.x}px; top: ${box.y}px; width: ${typeof box.width === 'number' ? box.width + 'px' : box.width}; height: ${typeof box.height === 'number' ? box.height + 'px' : box.height}; z-index: ${box.zIndex};">${box.content}</div>`).join('');
+  const boxesHtml = boxes.map(box => {
+    const hasBorder = box.borderWidth && box.borderWidth > 0 && box.borderStyle && box.borderStyle !== 'none';
+    const borderInlineStyle = hasBorder ? `border: ${box.borderWidth}px ${box.borderStyle} ${box.borderColor || '#000000'};` : '';
+    const radiusInlineStyle = (box.borderRadius ?? 0) > 0 ? `border-radius: ${box.borderRadius}px;` : '';
+    const borderDataAttrs = box.borderColor ? `data-border-color="${box.borderColor}" ` : '';
+    const borderWidthAttr = box.borderWidth !== undefined ? `data-border-width="${box.borderWidth}" ` : '';
+    const borderStyleAttr = box.borderStyle ? `data-border-style="${box.borderStyle}" ` : '';
+    const borderRadiusAttr = box.borderRadius !== undefined ? `data-border-radius="${box.borderRadius}" ` : '';
+    return `<div class="canvas-box" data-id="${box.id}" ${borderDataAttrs}${borderWidthAttr}${borderStyleAttr}${borderRadiusAttr}style="position: absolute; left: ${box.x}px; top: ${box.y}px; width: ${typeof box.width === 'number' ? box.width + 'px' : box.width}; height: ${typeof box.height === 'number' ? box.height + 'px' : box.height}; z-index: ${box.zIndex}; ${borderInlineStyle} ${radiusInlineStyle}">${box.content}</div>`;
+  }).join('');
   const pathsHtml = paths.map(p => {
     const d = p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
     return `<path d="${d}" stroke="${p.color}" stroke-width="${p.width}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join('');
   const svgHtml = paths.length > 0 ? `<svg class="drawing-layer" style="position: absolute; inset: 0; pointer-events: none; width: 100%; height: 100%; z-index: 5;">${pathsHtml}</svg>` : '';
   return `<div class="metadata-header" style="display:none;">${metadataStr}</div>${svgHtml}${boxesHtml}`;
+};
+
+// --- Border Panel Sub-Component ---
+
+const BORDER_STYLES = [
+  { value: 'none',   label: 'Nenhuma' },
+  { value: 'solid',  label: 'Sólida' },
+  { value: 'dashed', label: 'Tracejada' },
+  { value: 'dotted', label: 'Pontilhada' },
+  { value: 'double', label: 'Dupla' },
+];
+
+const BorderPanel = ({ box, onUpdate, onClose }: { box: CanvasBox; onUpdate: (props: Partial<CanvasBox>) => void; onClose: () => void }) => {
+  const [color, setColor] = useState(box.borderColor || '#3b82f6');
+  const [width, setWidth] = useState(box.borderWidth ?? 1);
+  const [style, setStyle] = useState(box.borderStyle || 'solid');
+  const [radius, setRadius] = useState(box.borderRadius ?? 0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const apply = useCallback((c: string, w: number, s: string, r: number) => {
+    onUpdate({ borderColor: c, borderWidth: w, borderStyle: s, borderRadius: r });
+  }, [onUpdate]);
+
+  return (
+    <div
+      ref={panelRef}
+      className="absolute top-8 left-0 z-[200] w-52 rounded-xl border border-slate-200 bg-white shadow-2xl p-3 flex flex-col gap-3"
+      style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Borda do Bloco</span>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xs font-bold">✕</button>
+      </div>
+
+      {/* Estilo */}
+      <div>
+        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Estilo</label>
+        <div className="flex flex-wrap gap-1">
+          {BORDER_STYLES.map(bs => (
+            <button
+              key={bs.value}
+              onClick={() => { setStyle(bs.value); apply(color, width, bs.value, radius); }}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${
+                style === bs.value
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {bs.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview + Cor */}
+      <div className="flex items-center gap-2">
+        <div>
+          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Cor</label>
+          <input
+            type="color"
+            value={color}
+            onInput={(e: any) => { setColor(e.target.value); apply(e.target.value, width, style, radius); }}
+            className="w-9 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Preview</label>
+          <div
+            className="h-9 bg-slate-50"
+            style={{
+              border: style !== 'none' ? `${width}px ${style} ${color}` : '1px dashed #cbd5e1',
+              borderRadius: `${radius}px`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Espessura */}
+      <div>
+        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          Espessura — <span className="text-blue-600 font-black">{width}px</span>
+        </label>
+        <input
+          type="range"
+          min={1}
+          max={12}
+          value={width}
+          onChange={(e) => { const v = parseInt(e.target.value); setWidth(v); apply(color, v, style, radius); }}
+          className="w-full accent-blue-600"
+        />
+      </div>
+
+      {/* Arredondamento */}
+      <div>
+        <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          Arredondamento — <span className="text-indigo-600 font-black">{radius}px</span>
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={64}
+          value={radius}
+          onChange={(e) => { const v = parseInt(e.target.value); setRadius(v); apply(color, width, style, v); }}
+          className="w-full accent-indigo-600"
+        />
+      </div>
+
+      {/* Remover borda */}
+      {(box.borderStyle && box.borderStyle !== 'none' || (box.borderRadius ?? 0) > 0) && (
+        <button
+          onClick={() => { onUpdate({ borderColor: undefined, borderWidth: 0, borderStyle: 'none', borderRadius: 0 }); onClose(); }}
+          className="text-[10px] font-bold text-red-500 hover:text-red-700 text-left"
+        >
+          ✕ Remover borda
+        </button>
+      )}
+    </div>
+  );
 };
 
 // --- Sub-Components ---
@@ -142,6 +288,93 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
   );
 }
 
+// --- BoxWithBorder: Rnd wrapper with border panel ---
+
+const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, deleteBox, onFocus }: {
+  box: CanvasBox;
+  isPenActive: boolean;
+  showGrid: boolean;
+  updateBox: (id: string, props: Partial<CanvasBox>) => void;
+  bringToFront: (id: string) => void;
+  deleteBox: (id: string) => void;
+  onFocus: any;
+}) => {
+  const [showBorderPanel, setShowBorderPanel] = useState(false);
+  const hasBorder = box.borderStyle && box.borderStyle !== 'none' && (box.borderWidth ?? 0) > 0;
+  const hasRadius = (box.borderRadius ?? 0) > 0;
+
+  const boxBorderStyle: React.CSSProperties = {
+    ...(hasBorder ? { border: `${box.borderWidth}px ${box.borderStyle} ${box.borderColor || '#000000'}` } : {}),
+    ...(hasRadius ? { borderRadius: `${box.borderRadius}px` } : {}),
+  };
+
+  return (
+    <Rnd
+      position={{ x: box.x, y: box.y }}
+      size={{ width: box.width, height: box.height }}
+      dragGrid={showGrid ? [8, 8] : undefined}
+      resizeGrid={showGrid ? [8, 8] : undefined}
+      onDragStop={(e, d) => updateBox(box.id, { x: d.x, y: d.y })}
+      onResizeStop={(e, direction, ref, delta, position) => {
+        updateBox(box.id, {
+          width: ref.style.width,
+          height: ref.style.height,
+          ...position,
+        });
+      }}
+      bounds="parent"
+      dragHandleClassName="box-drag-handle"
+      style={{ zIndex: box.zIndex }}
+      className={`group absolute ${isPenActive ? 'pointer-events-none' : ''}`}
+    >
+      {/* Floating action bar */}
+      <div className="absolute -top-6 left-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity no-print" style={{ zIndex: 210 }}>
+        <div className="box-drag-handle h-6 px-2 bg-blue-500 text-white cursor-move flex items-center justify-center rounded border border-blue-600 shadow text-[10px] font-bold">
+          ARRASTAR
+        </div>
+        <button onClick={() => bringToFront(box.id)} className="h-6 w-6 bg-slate-700 text-white rounded flex items-center justify-center hover:bg-slate-600" title="Trazer para frente">
+          <Layers size={12} />
+        </button>
+
+        {/* Border button */}
+        <div className="relative">
+          <button
+            onClick={() => setShowBorderPanel(v => !v)}
+            title="Editar Borda"
+            className={`h-6 w-6 rounded flex items-center justify-center transition-all ${
+              hasBorder
+                ? 'bg-indigo-500 text-white border border-indigo-600 shadow-md'
+                : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            <Square size={11} />
+          </button>
+          {showBorderPanel && (
+            <BorderPanel
+              box={box}
+              onUpdate={(props) => updateBox(box.id, props)}
+              onClose={() => setShowBorderPanel(false)}
+            />
+          )}
+        </div>
+
+        <button onClick={() => deleteBox(box.id)} className="h-6 w-6 bg-red-500 text-white rounded flex items-center justify-center hover:bg-red-600" title="Deletar bloco">
+          <Trash2 size={12} />
+        </button>
+      </div>
+
+      {/* Box content */}
+      <div
+        className="w-full h-full border border-dashed border-transparent group-hover:border-blue-300 focus-within:border-blue-500 focus-within:border-solid focus-within:ring-2 focus-within:ring-blue-100 bg-white shadow-sm overflow-hidden print:border-none print:shadow-none print:bg-transparent transition-all duration-200"
+        style={boxBorderStyle}
+        onClick={() => bringToFront(box.id)}
+      >
+        <MiniEditor box={box} updateBox={updateBox} onFocus={onFocus} />
+      </div>
+    </Rnd>
+  );
+};
+
 const Paper = ({ 
   index, 
   content, 
@@ -164,13 +397,22 @@ const Paper = ({
   const [paths, setPaths] = useState<DrawingPath[]>([]);
   const [currentPath, setCurrentPath] = useState<DrawingPath | null>(null);
 
-  // Inicializar dados do HTML
+  // Flag para evitar que o useEffect sobrescreva mudanças internas
+  const internalUpdate = useRef(false);
+
+  // Sincronizar com conteúdo externo (ex: carregar arquivo), mas ignorar
+  // quando a mudança veio de dentro do próprio Paper (internalUpdate=true)
   useEffect(() => {
+    if (internalUpdate.current) {
+      internalUpdate.current = false;
+      return;
+    }
     setBoxes(parseHtmlToBoxes(content));
     setPaths(parseHtmlToPaths(content));
   }, [content]);
 
   const handleUpdate = (newBoxes: CanvasBox[], newPaths: DrawingPath[]) => {
+    internalUpdate.current = true;
     setBoxes(newBoxes);
     setPaths(newPaths);
     const metaStr = [disciplina, assunto, titulo, subtitulo].join('|');
@@ -292,6 +534,26 @@ const Paper = ({
         onDrop={handleCanvasDrop}
         onDragOver={(e) => e.preventDefault()}
       >
+        {/* Metadata Header — fora do canvas para blocos não sobreporem */}
+        <div className="no-print flex items-center justify-between gap-3 border-b-2 border-slate-900 px-[var(--paper-padding-x)] shrink-0 bg-white" style={{ height: 'var(--header-height)' }}>
+          <div className="flex items-center flex-wrap gap-2 min-w-0">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none truncate">{disciplina || 'DISCIPLINA'}</span>
+            <span className="text-slate-300 text-[10px]">|</span>
+            <span className="font-bold text-slate-500 uppercase text-[11px] truncate">{assunto || 'ASSUNTO'}</span>
+            <span className="text-slate-300 text-[10px]">|</span>
+            <span className="font-black text-slate-800 uppercase text-[12px] truncate">{titulo || 'TÍTULO'}</span>
+            {subtitulo && (
+              <>
+                <span className="text-slate-300 text-[10px]">|</span>
+                <span className="font-medium text-slate-400 uppercase text-[11px] truncate">{subtitulo}</span>
+              </>
+            )}
+          </div>
+          <div className="text-[11px] font-black text-slate-900 uppercase whitespace-nowrap">
+            PÁGINA {(index + 1).toString().padStart(2, '0')}
+          </div>
+        </div>
+
         <div 
           className={`paper-inner w-full relative bg-white ${isPenActive ? 'cursor-crosshair' : ''} ${showGrid ? 'show-grid' : ''}`}
           onMouseDown={handleMouseDown}
@@ -336,61 +598,17 @@ const Paper = ({
               </span>
            </div>
 
-           {/* Metadata Header */}
-           <div className="absolute top-0 left-0 right-0 flex items-center justify-between gap-3 border-b-2 border-slate-900 px-[var(--paper-padding-x)] z-10 no-print" style={{ height: 'var(--header-height)' }}>
-             <div className="flex items-center flex-wrap gap-2 min-w-0">
-               <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none truncate">{disciplina || 'DISCIPLINA'}</span>
-               <span className="text-slate-300 text-[10px]">|</span>
-               <span className="font-bold text-slate-500 uppercase text-[11px] truncate">{assunto || 'ASSUNTO'}</span>
-               <span className="text-slate-300 text-[10px]">|</span>
-               <span className="font-black text-slate-800 uppercase text-[12px] truncate">{titulo || 'TÍTULO'}</span>
-               {subtitulo && (
-                 <>
-                   <span className="text-slate-300 text-[10px]">|</span>
-                   <span className="font-medium text-slate-400 uppercase text-[11px] truncate">{subtitulo}</span>
-                 </>
-               )}
-             </div>
-             <div className="text-[11px] font-black text-slate-900 uppercase whitespace-nowrap">
-               PÁGINA {(index + 1).toString().padStart(2, '0')}
-             </div>
-           </div>
-
            {boxes.map(box => (
-              <Rnd
+              <BoxWithBorder
                 key={box.id}
-                position={{ x: box.x, y: box.y }}
-                size={{ width: box.width, height: box.height }}
-                dragGrid={showGrid ? [8, 8] : undefined}
-                resizeGrid={showGrid ? [8, 8] : undefined}
-                onDragStop={(e, d) => updateBox(box.id, { x: d.x, y: d.y })}
-                onResizeStop={(e, direction, ref, delta, position) => {
-                  updateBox(box.id, {
-                    width: ref.style.width,
-                    height: ref.style.height,
-                    ...position,
-                  });
-                }}
-                bounds="parent"
-                dragHandleClassName="box-drag-handle"
-                style={{ zIndex: box.zIndex }}
-                className={`group absolute ${isPenActive ? 'pointer-events-none' : ''}`}
-              >
-                <div className="absolute -top-6 left-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity no-print">
-                   <div className="box-drag-handle h-6 px-2 bg-blue-500 text-white cursor-move flex items-center justify-center rounded border border-blue-600 shadow text-[10px] font-bold">
-                      ARRASTAR
-                   </div>
-                   <button onClick={() => bringToFront(box.id)} className="h-6 w-6 bg-slate-700 text-white rounded flex items-center justify-center hover:bg-slate-600" title="Trazer para frente">
-                      <Layers size={12} />
-                   </button>
-                   <button onClick={() => deleteBox(box.id)} className="h-6 w-6 bg-red-500 text-white rounded flex items-center justify-center hover:bg-red-600" title="Deletar bloco">
-                      <Trash2 size={12} />
-                   </button>
-                </div>
-                <div className="w-full h-full border border-dashed border-transparent group-hover:border-blue-300 focus-within:border-blue-500 focus-within:border-solid focus-within:ring-2 focus-within:ring-blue-100 bg-white shadow-sm overflow-hidden print:border-none print:shadow-none print:bg-transparent transition-all duration-200" onClick={() => bringToFront(box.id)}>
-                   <MiniEditor box={box} updateBox={updateBox} onFocus={onFocus} />
-                </div>
-              </Rnd>
+                box={box}
+                isPenActive={isPenActive}
+                showGrid={showGrid}
+                updateBox={updateBox}
+                bringToFront={bringToFront}
+                deleteBox={deleteBox}
+                onFocus={onFocus}
+              />
            ))}
         </div>
       </div>
@@ -439,7 +657,7 @@ const Editor: React.FC<EditorProps> = ({
   const [isPenActive, setIsPenActive] = useState(false);
   const [penColor, setPenColor] = useState('#3b82f6');
   const [activeEditor, setActiveEditor] = useState<any>(null);
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
 
   const capitalizeFirst = (str: string) => {
     if (!str) return str;
