@@ -27,7 +27,7 @@ import { Fraction } from '../lib/FractionNode';
 import { Root } from '../lib/RootNode';
 import { MarkdownPaste } from '../lib/MarkdownPasteExtension';
 import { Rnd } from 'react-rnd';
-import { Plus, Trash2, Layers, ChevronUp, ChevronDown, Square } from 'lucide-react';
+import { Plus, Trash2, Layers, ChevronUp, ChevronDown, Square, Copy, Clipboard } from 'lucide-react';
 import Toolbar from './Toolbar';
 import { generatePrintableHtml, downloadHtmlFile } from '../lib/HtmlGenerator';
 
@@ -290,7 +290,7 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
 
 // --- BoxWithBorder: Rnd wrapper with border panel ---
 
-const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, deleteBox, onFocus }: {
+const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, deleteBox, onFocus, onCopy }: {
   box: CanvasBox;
   isPenActive: boolean;
   showGrid: boolean;
@@ -298,6 +298,7 @@ const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, de
   bringToFront: (id: string) => void;
   deleteBox: (id: string) => void;
   onFocus: any;
+  onCopy: (box: CanvasBox) => void;
 }) => {
   const [showBorderPanel, setShowBorderPanel] = useState(false);
   const hasBorder = box.borderStyle && box.borderStyle !== 'none' && (box.borderWidth ?? 0) > 0;
@@ -334,6 +335,13 @@ const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, de
         </div>
         <button onClick={() => bringToFront(box.id)} className="h-6 w-6 bg-slate-700 text-white rounded flex items-center justify-center hover:bg-slate-600" title="Trazer para frente">
           <Layers size={12} />
+        </button>
+        <button
+          onClick={() => onCopy(box)}
+          title="Copiar bloco (Ctrl+C)"
+          className="h-6 w-6 bg-emerald-500 text-white rounded flex items-center justify-center hover:bg-emerald-600 transition-all"
+        >
+          <Copy size={11} />
         </button>
 
         {/* Border button */}
@@ -391,7 +399,10 @@ const Paper = ({
   onMove,
   isFirst,
   isLast,
-  showGrid
+  showGrid,
+  onCopyBox,
+  onPasteBox,
+  hasClipboard,
 }: any) => {
   const [boxes, setBoxes] = useState<CanvasBox[]>([]);
   const [paths, setPaths] = useState<DrawingPath[]>([]);
@@ -491,6 +502,7 @@ const Paper = ({
     setCurrentPath(null);
   };
 
+
   return (
     <div className="relative group/page">
       {/* Botões de Ações na Lateral Esquerda */}
@@ -514,6 +526,17 @@ const Paper = ({
             title="Mover Página para Baixo"
           >
             <ChevronDown size={20} />
+          </button>
+        )}
+
+        {/* Colar bloco copiado nesta página */}
+        {hasClipboard && onPasteBox && (
+          <button
+            onClick={() => onPasteBox()}
+            className="p-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 border border-emerald-600 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer flex items-center justify-center animate-pulse"
+            title="Colar bloco copiado nesta página (Ctrl+V)"
+          >
+            <Clipboard size={20} />
           </button>
         )}
 
@@ -608,6 +631,7 @@ const Paper = ({
                 bringToFront={bringToFront}
                 deleteBox={deleteBox}
                 onFocus={onFocus}
+                onCopy={onCopyBox}
               />
            ))}
         </div>
@@ -658,21 +682,139 @@ const Editor: React.FC<EditorProps> = ({
   const [penColor, setPenColor] = useState('#3b82f6');
   const [activeEditor, setActiveEditor] = useState<any>(null);
   const [showGrid, setShowGrid] = useState(false);
+  const [hasLocalClipboard, setHasLocalClipboard] = useState(false);
+  const [pasteTarget, setPasteTarget] = useState<number | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 2000);
+  };
+
+  const handleCopyBox = (box: CanvasBox) => {
+    const jsonStr = JSON.stringify(box);
+    const htmlContent = `<!-- HTML-STUDIO-BOX: ${jsonStr} -->${box.content}`;
+
+    // Converte HTML em texto simples para a área de transferência do SO
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = box.content;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+    // Cria um item na área de transferência com HTML e texto simples
+    try {
+      const data = [
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ];
+
+      navigator.clipboard.write(data).then(() => {
+        setHasLocalClipboard(true);
+        showToast('Bloco copiado para a área de transferência! Cole com Ctrl+V');
+      }).catch(err => {
+        console.error('Falha ao usar Clipboard API:', err);
+        setHasLocalClipboard(true);
+        (window as any).__localBoxClipboard = box;
+        showToast('Bloco copiado (interno)! Cole com Ctrl+V');
+      });
+    } catch (err) {
+      console.error('Erro ao instanciar ClipboardItem:', err);
+      // Fallback para navegadores sem suporte ou bloqueios
+      setHasLocalClipboard(true);
+      (window as any).__localBoxClipboard = box;
+      showToast('Bloco copiado (interno)! Cole com Ctrl+V');
+    }
+  };
+
+  const insertBox = useCallback((pageIndex: number, boxToPaste: CanvasBox) => {
+    const newBox: CanvasBox = {
+      ...boxToPaste,
+      id: 'box-' + Date.now() + Math.random(),
+      x: boxToPaste.x + 20,
+      y: boxToPaste.y + 20,
+    };
+    const currentHtml = pages[pageIndex] || '';
+    const existingBoxes = parseHtmlToBoxes(currentHtml);
+    const existingPaths = parseHtmlToPaths(currentHtml);
+    const metaStr = [disciplina, assunto, titulo, subtitulo].join('|');
+    onUpdatePage(pageIndex, serializeBoxesToHtml([...existingBoxes, newBox], existingPaths, metaStr));
+    showToast('Bloco colado com toda a formatação!');
+  }, [pages, disciplina, assunto, titulo, subtitulo, onUpdatePage]);
+
+  const handlePasteBox = useCallback(async (pageIndex: number) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        if (item.types.includes('text/html')) {
+          const blob = await item.getType('text/html');
+          const html = await blob.text();
+          const match = html.match(/<!-- HTML-STUDIO-BOX:\s*(\{.*?\})\s*-->/);
+          if (match) {
+            const boxData = JSON.parse(match[1]);
+            insertBox(pageIndex, boxData);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      // Fallback para clipboard interno se houver erro ao acessar área de transferência do SO
+      const fallbackBox = (window as any).__localBoxClipboard;
+      if (fallbackBox) {
+        insertBox(pageIndex, fallbackBox);
+        return;
+      }
+    }
+    showToast('Área de transferência não contém um bloco válido.');
+  }, [insertBox]);
+
+  // Paste with Ctrl+V (paste event) anywhere on the page
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      // Ignora a colagem de bloco se o foco estiver dentro de um campo de texto/editor
+      const activeEl = document.activeElement;
+      const isEditingText = activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.hasAttribute('contenteditable') ||
+        activeEl.closest('[contenteditable]')
+      );
+      if (isEditingText) return;
+
+      const html = e.clipboardData?.getData('text/html');
+      if (html && html.includes('<!-- HTML-STUDIO-BOX:')) {
+        const match = html.match(/<!-- HTML-STUDIO-BOX:\s*(\{.*?\})\s*-->/);
+        if (match) {
+          e.preventDefault();
+          try {
+            const boxData = JSON.parse(match[1]);
+            const target = pasteTarget !== null ? pasteTarget : currentPage;
+            insertBox(target, boxData);
+          } catch (err) {
+            console.error('Erro ao parsear bloco do HTML colado:', err);
+          }
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsPenActive(false);
+    };
+
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [insertBox, pasteTarget, currentPage]);
 
   const capitalizeFirst = (str: string) => {
     if (!str) return str;
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsPenActive(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+
 
   const handleWorkspaceClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -786,10 +928,22 @@ const Editor: React.FC<EditorProps> = ({
               isFirst={idx === 0}
               isLast={idx === pages.length - 1}
               showGrid={showGrid}
+              onCopyBox={handleCopyBox}
+              onPasteBox={() => handlePasteBox(idx)}
+              onMouseEnter={() => setPasteTarget(idx)}
+              hasClipboard={hasLocalClipboard}
             />
           ))}
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-[12px] font-bold shadow-2xl border border-slate-700 animate-fade-in no-print">
+          <Copy size={14} className="text-emerald-400" />
+          {toastMsg}
+        </div>
+      )}
       
       {/* Footer Info */}
       <div className="h-8 bg-slate-900 text-white flex items-center px-4 gap-6 text-[10px] font-mono border-t border-slate-800 z-50">

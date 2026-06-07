@@ -91,6 +91,10 @@ const DEFAULT_COLORS = [
   { name: 'Roxo Elétrico', value: '#8b5cf6', rgb: 'rgb(139, 92, 246)' },
 ];
 
+const SPECIAL_CHARS = [
+  'º', 'ª', '±', '×', '÷', '≠', '≈', '≤', '≥', '°', 'π', 'α', 'β', 'γ', 'Δ', 'θ', 'λ', 'μ', '→', '⇒', '∞', '✓', '✗', '★'
+];
+
 const Toolbar: React.FC<ToolbarProps> = ({
   editor, onSave, onPrint, onClear, onExportHtml, onInsertImage, isSaving, saveSuccess,
   isPenActive, onTogglePen, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
@@ -108,6 +112,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [showRootDialog, setShowRootDialog] = useState(false);
   const [rootIndex, setRootIndex] = useState('');
   const [rootRadicand, setRootRadicand] = useState('');
+  const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [showLineHeightDialog, setShowLineHeightDialog] = useState(false);
   const [customLineHeight, setCustomLineHeight] = useState('1.5');
 
@@ -169,6 +174,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const selectedText = editor.state.doc.textBetween(selection.from, selection.to, ' ');
     setFractionNumerator(selectedText || '');
     setFractionDenominator('');
+    setShowRootDialog(false);
+    setShowSpecialCharsDialog(false);
     setShowFractionDialog(true);
   };
 
@@ -195,6 +202,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
     if (!editor) return;
     setRootIndex('');
     setRootRadicand('');
+    setShowFractionDialog(false);
+    setShowSpecialCharsDialog(false);
     setShowRootDialog(true);
   };
 
@@ -213,6 +222,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
     (editor.chain().focus() as any).insertRoot({ index: indexText, radicand: radicandText }).run();
     closeRootDialog();
+  };
+
+  const insertSpecialChar = (char: string) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(char).run();
+    setShowSpecialCharsDialog(false);
   };
 
   const openLineHeightDialog = () => {
@@ -439,6 +454,40 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton disabled={!editor} onClick={openRootDialog} title="Inserir Raiz">
           <span className="font-semibold text-[13px]">√</span>
         </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={() => {
+          setShowFractionDialog(false);
+          setShowRootDialog(false);
+          setShowSpecialCharsDialog(v => !v);
+        }} isActive={showSpecialCharsDialog} title="Inserir Caractere Especial">
+          <span className="font-semibold text-[13.5px] font-mono">Ω</span>
+        </ToolbarButton>
+
+        {showSpecialCharsDialog && (
+          <div className="absolute top-full left-0 mt-2 z-50 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Caracteres Especiais</span>
+                <button 
+                  onClick={() => setShowSpecialCharsDialog(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  Fechar
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-1">
+                {SPECIAL_CHARS.map(char => (
+                  <button
+                    key={char}
+                    onClick={() => insertSpecialChar(char)}
+                    className="h-8 w-8 rounded-lg border border-slate-100 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 text-sm font-semibold flex items-center justify-center transition-all active:scale-90"
+                  >
+                    {char}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showFractionDialog && (
           <div className="absolute top-full left-0 mt-2 z-50 w-max rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
