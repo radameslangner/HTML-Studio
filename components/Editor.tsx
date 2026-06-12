@@ -261,7 +261,7 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
   const editor = useEditor({
     extensions: [
       StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Highlight.configure({ multicolor: true }), Link, Image, Table, TableRow, TableHeader, TableCell,
+      Highlight.configure({ multicolor: true }), Link, Image, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
       TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
     ],
     content: box.content,
