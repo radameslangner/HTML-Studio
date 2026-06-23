@@ -257,6 +257,19 @@ const BorderPanel = ({ box, onUpdate, onClose }: { box: CanvasBox; onUpdate: (pr
 
 // --- Sub-Components ---
 
+const normalizeHtmlForComparison = (html: string): string => {
+  if (!html) return '';
+  const cleanedStyles = html.replace(/style="([^"]*?)"/g, (match, styleContent) => {
+    const rules = styleContent
+      .split(';')
+      .map((r: string) => r.trim())
+      .filter((r: string) => r.length > 0)
+      .map((r: string) => r.replace(/:\s+/g, ':'));
+    return `style="${rules.join(';')}"`;
+  });
+  return cleanedStyles.replace(/\s+/g, ' ').trim();
+};
+
 const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: any, onFocus: any }) => {
   const editor = useEditor({
     extensions: [
@@ -276,8 +289,17 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
 
   // Sincronizar conteúdo se mudar externamente (ex: carregar arquivo)
   useEffect(() => {
-    if (editor && box.content !== editor.getHTML()) {
-      editor.commands.setContent(box.content);
+    if (editor) {
+      const currentNormalized = normalizeHtmlForComparison(editor.getHTML());
+      const incomingNormalized = normalizeHtmlForComparison(box.content);
+      
+      if (incomingNormalized !== currentNormalized) {
+        // Evita atualizar o conteúdo do editor se ele estiver focado ou em processo de composição (IME / acentuação)
+        if (editor.isFocused || editor.view.composing) {
+          return;
+        }
+        editor.commands.setContent(box.content);
+      }
     }
   }, [box.content, editor]);
 
@@ -668,6 +690,7 @@ interface EditorProps {
   onMetadataChange: (metadata: any) => void;
   isSaving: boolean;
   saveSuccess: boolean;
+  autosaveStatus: 'idle' | 'saving' | 'saved' | 'error' | 'disabled';
   status: any;
   onStatusChange: (status: any) => void;
   initialContent: string;
@@ -676,7 +699,7 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({
   pages, currentPage, onPageChange, onAddPage, onRemovePage, onUpdatePage, onMovePage, onSave, onPrint,
-  disciplina, assunto, titulo, subtitulo, onMetadataChange, isSaving, saveSuccess, status, onStatusChange, initialContent, availableDisciplines
+  disciplina, assunto, titulo, subtitulo, onMetadataChange, isSaving, saveSuccess, autosaveStatus, status, onStatusChange, initialContent, availableDisciplines
 }) => {
   const [isPenActive, setIsPenActive] = useState(false);
   const [penColor, setPenColor] = useState('#3b82f6');
@@ -837,6 +860,47 @@ const Editor: React.FC<EditorProps> = ({
     onUpdatePage(currentPage, `${currentContent}${newBox}`);
   };
 
+  const renderAutosaveIndicator = () => {
+    switch (autosaveStatus) {
+      case 'saving':
+        return (
+          <div className="flex items-center gap-1.5 text-blue-400 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+            <span>SALVANDO...</span>
+          </div>
+        );
+      case 'saved':
+        return (
+          <div className="flex items-center gap-1.5 text-emerald-400 transition-all duration-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>SALVO AUTOMATICAMENTE</span>
+          </div>
+        );
+      case 'idle':
+        return (
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            <span>ALTERAÇÕES SALVAS</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center gap-1.5 text-rose-500 font-bold animate-bounce">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            <span>ERRO AO SALVAR!</span>
+          </div>
+        );
+      case 'disabled':
+      default:
+        return (
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+            <span>AUTOSAVE INATIVO (SALVE NO DISCO)</span>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-50">
       {/* Header Group (Fixed at top) */}
@@ -946,12 +1010,17 @@ const Editor: React.FC<EditorProps> = ({
       )}
       
       {/* Footer Info */}
-      <div className="h-8 bg-slate-900 text-white flex items-center px-4 gap-6 text-[10px] font-mono border-t border-slate-800 z-50">
-        <div className="flex items-center gap-2">
+      <div className="h-8 bg-slate-900 text-white flex items-center px-4 justify-between text-[10px] font-mono border-t border-slate-800 z-50">
+        <div className="flex-1 flex items-center gap-2">
           <span className="text-slate-500 uppercase">Total de Páginas:</span>
           <span className="text-blue-400 font-bold">{pages.length}</span>
           <span className="text-slate-600 ml-2">({Math.ceil(pages.length / 2)} Folhas A4)</span>
         </div>
+        
+        <div className="flex-1 flex items-center justify-center">
+          {renderAutosaveIndicator()}
+        </div>
+
         <div className="flex-1 text-right text-slate-500 truncate">
           <span className="text-white italic">Multi-Page A5 Landscape Mode</span>
         </div>

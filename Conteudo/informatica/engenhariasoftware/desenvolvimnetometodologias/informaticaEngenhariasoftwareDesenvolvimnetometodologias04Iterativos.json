@@ -1,0 +1,13 @@
+{
+  "disciplina": "informatica",
+  "assunto": "engenhariaSoftware",
+  "titulo": "desenvolvimnetometodologias",
+  "subtitulo": "04-iterativos",
+  "slug": "informaticaEngenhariasoftwareDesenvolvimnetometodologias04Iterativos",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">informatica|engenhariaSoftware|desenvolvimnetometodologias|04-iterativos</div><div class=\"canvas-box\" data-id=\"box-17819891044440.6328669581278896\" style=\"position: absolute; left: 30.850006103515625px; top: 27.5px; width: 738px; height: 470px; z-index: 46;  \"><p><span style=\"font-size: 24px;\"><strong><em>Modelos Iterativos - Feedback</em></strong></span></p><p></p><ul><li><p><span style=\"font-size: 18px;\"><strong><em>Motivação</em></strong>: requisitos de sistema <strong><em>sempre</em></strong> evoluem durante o projeto.</span></p></li><li><p><span style=\"font-size: 18px;\"><strong><em>Deve-se dividir para conquistar.</em></strong></span></p></li></ul><p></p><p style=\"line-height: 2;\"><span style=\"font-size: 18px;\"><strong><em>Desenvolvimento Incremental</em></strong></span></p><ul><li><p style=\"line-height: 2;\">A ideia é de desenvolver e entregar o software em incrementos, com cada incremento entregando parte da funcionalidade requerida.</p></li><li><p style=\"line-height: 2;\">Requisitos são deﬁnidos antes do desenvolvimento do incremento, sendo os mais críticos priorizados</p></li></ul><p></p><p><span style=\"font-size: 18px;\"><strong><em>Desenvolvimento Incremental (cont.)</em></strong></span></p><p style=\"line-height: 2;\">Um “mini projeto em cascata” é executado em cada iteração, progredindo até a entrega ﬁnal do</p><p>produto.</p></div>",
+    "<div class=\"metadata-header\" style=\"display:none;\">informatica|engenhariaSoftware|desenvolvimnetometodologias|04-iterativos</div><div class=\"canvas-box\" data-id=\"box-17819894510730.8250825170860128\" style=\"position: absolute; left: 32.850006103515625px; top: 33.5333251953125px; width: 736px; height: 372px; z-index: 19;  \"><p style=\"line-height: 2;\"><span style=\"font-size: 24px;\"><strong><em>Iterativo vs. Incremental</em></strong></span></p><p><span style=\"color: rgb(238, 118, 79); font-size: 20px;\"><strong><em>Incremental</em></strong></span><span style=\"font-size: 20px;\">: são adicionados “pedaços completos”.</span></p><p></p><p><span style=\"color: rgb(69, 116, 68); font-size: 20px;\"><strong><em>Iterativo</em></strong></span><span style=\"font-size: 20px;\">: esboços ou pedaços incompletos do produto são adicionados a cada iteração.</span></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-06-20T21:05:55.238Z"
+}

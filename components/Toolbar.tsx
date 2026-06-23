@@ -17,6 +17,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
   Highlighter,
   Link as LinkIcon,
   Image as ImageIcon,
@@ -63,7 +64,7 @@ interface ToolbarProps {
 const ToolbarButton = ({ onClick, isActive, title, children, disabled = false, danger = false, draggable = false, onDragStart }: any) => (
   <button
     onClick={onClick}
-    disabled={disabled}
+    disabled={!!disabled}
     draggable={draggable}
     onDragStart={onDragStart}
     className={`p-2 rounded-lg transition-all duration-200 ${isActive
@@ -384,6 +385,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           value={editor?.getAttributes('textStyle').color || '#000000'}
           className={`w-8 h-8 p-1 rounded-lg border border-slate-200 cursor-pointer bg-white transition-all hover:scale-105 active:scale-95 ${!editor ? 'opacity-20 cursor-not-allowed' : ''}`}
           title="Personalizar cor do slot selecionado"
+          suppressHydrationWarning
         />
 
         {/* 5 Cores Padrão Pré-definidas */}
@@ -394,7 +396,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             return (
               <button
                 key={index}
-                disabled={!editor}
+                disabled={!!(!editor)}
                 onClick={() => {
                   setSelectedPresetIndex(index);
                   editor?.chain().focus().setColor(color.value).run();
@@ -627,6 +629,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().setTextAlign('right').run()} isActive={editor?.isActive({ textAlign: 'right' })} title="Direita">
           <AlignRight size={16} />
         </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().setTextAlign('justify').run()} isActive={editor?.isActive({ textAlign: 'justify' })} title="Justificado">
+          <AlignJustify size={16} />
+        </ToolbarButton>
       </div>
 
       <Divider />
@@ -744,6 +749,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           value={penColor}
           className={`w-8 h-8 p-1 rounded-lg border border-slate-200 cursor-pointer bg-white ${!isPenActive ? 'opacity-40 grayscale pointer-events-none' : ''}`}
           title="Cor da Caneta"
+          suppressHydrationWarning
         />
         <ToolbarButton onClick={onClearDrawings} danger title="Apagar todos os desenhos">
           <Eraser size={16} />
@@ -788,7 +794,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
         <button
           onClick={onSave}
-          disabled={isSaving}
+          disabled={!!isSaving}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all active:scale-95 text-[11px] font-bold uppercase shadow-lg ${saveSuccess
               ? 'bg-green-600 text-white shadow-green-100'
               : 'bg-blue-600 text-white shadow-blue-100 hover:bg-blue-700'

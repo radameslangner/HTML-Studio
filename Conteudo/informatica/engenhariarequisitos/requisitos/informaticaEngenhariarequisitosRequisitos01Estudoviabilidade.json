@@ -1,0 +1,12 @@
+{
+  "disciplina": "informatica",
+  "assunto": "engenhariaRequisitos",
+  "titulo": "requisitos",
+  "subtitulo": "01-estudoviabilidade",
+  "slug": "informaticaEngenhariarequisitosRequisitos01Estudoviabilidade",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">informatica|engenhariaRequisitos|requisitos|01-estudoviabilidade</div><div class=\"canvas-box\" data-id=\"box-17819018092520.6882224268753618\" style=\"position: absolute; left: 33px; top: 39px; width: 727px; height: 447px; z-index: 17;  \"><p style=\"line-height: 3;\"><span style=\"font-size: 18px;\"><strong>Estudo de viabiliade</strong></span></p><p style=\"line-height: 2;\">Avaliaça , relativamente rapida e barata, para verificar se as necessidades dos usudrios podem ser satisfeitas por meio de um sistema de software.</p><p style=\"line-height: 2;\">O resultado dessa avaliaça o deve fornecer informaçoes para a tomada de decisao</p><p style=\"line-height: 2;\"></p><p style=\"line-height: 2;\"><span style=\"font-size: 18px;\"><strong>Estudo de viabiliade - resulta no </strong></span><span style=\"color: rgb(69, 116, 68); font-size: 18px;\"><strong>Relatório de viabiliade</strong></span></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-06-20T14:42:06.075Z"
+}

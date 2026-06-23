@@ -1,0 +1,12 @@
+{
+  "disciplina": "portugues",
+  "assunto": "pontuacao",
+  "titulo": "emprego",
+  "subtitulo": "parenteses",
+  "slug": "portuguesPontuacaoEmpregoParenteses",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">portugues|pontuacao|emprego|parenteses</div><div class=\"canvas-box\" data-id=\"box-17815603171060.5922217347014661\" style=\"position: absolute; left: 34.84375px; top: 42.5px; width: 729px; height: 447px; z-index: 24;  \"><p style=\"text-align: center;\"><span style=\"color: rgb(45, 83, 143); font-size: 20px;\"><strong><em>( Parênteses ) = ideias secundárias</em></strong></span></p><p style=\"text-align: center;\"></p><p style=\"text-align: center;\"></p><ol><li><p style=\"text-align: left;\">Empregam-se para isolar comentários acessórios.<br>Não sei se é a minha queda por causas difíceis (o socialismo, o Botafogo), mas o fato é que sempre achei a Baronesa uma injustiçada.</p></li></ol><p style=\"text-align: left;\"></p><ul><li><p style=\"text-align: left; line-height: 1.5;\">Isolam informações (menos ênfase).</p></li><li><p style=\"text-align: left; line-height: 1.5;\">Podem ser substituídos por vírgulas, travessões sem gerar erro gramatical ou mudança de sentido, mas com mudnaça de ênfase = expressividade.</p></li><li><p style=\"text-align: left; line-height: 1.5;\">Isolam <br>Explicação (esclarecimento do que foi dito).<br>Ampliação (acréscimo de nova ideia).</p></li></ul><p style=\"line-height: 1.5;\"></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-06-15T22:05:02.415Z"
+}

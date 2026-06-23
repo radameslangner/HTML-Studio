@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '../components/Editor';
 import Sidebar from '../components/Sidebar';
 import PrintLayout from '../components/PrintLayout';
@@ -21,6 +21,10 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [availableDisciplines, setAvailableDisciplines] = useState<string[]>([]);
+  
+  // Autosave status state and reference to track last saved state content
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error' | 'disabled'>('disabled');
+  const lastSavedStateRef = useRef<string>('');
 
   // Full Reactive Path - Derived from the 4 states
   const fullPath = `Conteudo / ${disciplina} / ${assunto} / ${titulo} / ${subtitulo}.json`;
@@ -93,6 +97,18 @@ export default function Home() {
       if (data.success) {
         setSaveSuccess(true);
         setSlug(data.slug);
+        
+        // Synchronize reference with saved state to prevent immediate auto-saving
+        lastSavedStateRef.current = JSON.stringify({
+          pages,
+          status,
+          titulo: userTitle,
+          disciplina: userDisciplina,
+          assunto: userAssunto,
+          subtitulo
+        });
+        setAutosaveStatus('idle');
+
         fetchList();
         setTimeout(() => setSaveSuccess(false), 2000);
       }
@@ -117,6 +133,17 @@ export default function Home() {
         setSubtitulo(data.subtitulo || '');
         setSlug(data.slug);
         setStatus(data.status || 'study');
+
+        // Initialize lastSavedStateRef with loaded content to prevent immediate autosave
+        lastSavedStateRef.current = JSON.stringify({
+          pages: data.pages,
+          status: data.status || 'study',
+          titulo: data.titulo || data.title,
+          disciplina: data.disciplina,
+          assunto: data.assunto,
+          subtitulo: data.subtitulo || ''
+        });
+        setAutosaveStatus('idle');
       }
     } catch (error) {
       console.error('Load error:', error);
@@ -166,6 +193,17 @@ export default function Home() {
         setSubtitulo(userSubtitulo);
         setSlug(data.slug);
         setStatus('study');
+        
+        // Initialize lastSavedStateRef with the new document data to start autosaving from this state
+        lastSavedStateRef.current = JSON.stringify({
+          pages: [INITIAL_CONTENT],
+          status: 'study',
+          titulo: userTitle,
+          disciplina: userDisciplina,
+          assunto: userAssunto,
+          subtitulo: userSubtitulo
+        });
+        setAutosaveStatus('idle');
         
         // Atualiza a barra lateral e as pastas na interface
         await fetchList();
@@ -255,6 +293,17 @@ export default function Home() {
       setAssunto(newMeta.assunto);
       setTitulo(newMeta.titulo);
       setSubtitulo(newMeta.subtitulo);
+
+      // Synchronize reference with renamed metadata
+      lastSavedStateRef.current = JSON.stringify({
+        pages,
+        status,
+        titulo: newMeta.titulo,
+        disciplina: newMeta.disciplina,
+        assunto: newMeta.assunto,
+        subtitulo: newMeta.subtitulo
+      });
+      setAutosaveStatus('idle');
     }
 
     await fetchList();
@@ -263,9 +312,59 @@ export default function Home() {
 
   const changeStatus = (newStatus: any) => {
     setStatus(newStatus);
-    // Auto-save if slug exists
-    if (slug) handleSave();
   };
+
+  // Autosave effect with debounce
+  useEffect(() => {
+    if (!slug) {
+      setAutosaveStatus('disabled');
+      return;
+    }
+
+    const currentDataStr = JSON.stringify({
+      pages,
+      status,
+      titulo,
+      disciplina,
+      assunto,
+      subtitulo
+    });
+
+    if (currentDataStr === lastSavedStateRef.current) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setAutosaveStatus('saving');
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: currentDataStr
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setAutosaveStatus('saved');
+          setSlug(data.slug);
+          
+          lastSavedStateRef.current = currentDataStr;
+
+          fetchList();
+          setTimeout(() => {
+            setAutosaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+          }, 3000);
+        } else {
+          setAutosaveStatus('error');
+        }
+      } catch (error) {
+        console.error('Autosave error:', error);
+        setAutosaveStatus('error');
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [pages, status, titulo, disciplina, assunto, subtitulo, slug]);
 
   return (
     <main className="flex min-h-screen bg-[#f8fafc] font-inter print:block print:min-h-0 print:bg-white">
@@ -309,6 +408,7 @@ export default function Home() {
             }}
             isSaving={isSaving}
             saveSuccess={saveSuccess}
+            autosaveStatus={autosaveStatus}
             status={status}
             onStatusChange={changeStatus}
             initialContent={INITIAL_CONTENT}

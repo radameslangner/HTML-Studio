@@ -1,0 +1,13 @@
+{
+  "disciplina": "informatica",
+  "assunto": "engenhariaRequisitos",
+  "titulo": "requisitos",
+  "subtitulo": "03-especificacao",
+  "slug": "informaticaEngenhariarequisitosRequisitos03Especificacao",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">informatica|engenhariaRequisitos|requisitos|03-especificacao</div><div class=\"canvas-box\" data-id=\"box-17819668224160.3096124876775297\" style=\"position: absolute; left: 26.850006103515625px; top: 31.5px; width: 721px; height: 437px; z-index: 14;  \"><p style=\"line-height: 3;\"><span style=\"color: rgb(172, 77, 77); font-size: 18px;\"><strong><em>Especificação de Requisitos </em></strong></span></p><ul><li><p style=\"line-height: 2;\">O termo especificação tem vários significados, podendo ser:<br>Um documento escrito.<br>Um modelo gráfico.<br>Um modelo matemático formal.<br>Uma coleção de cenários de uso, etc. </p></li><li><p style=\"line-height: 2;\">A abordagem utilizada depende da necessidade específica de cada projeto.<br>Documentos escritos combinados com modelos gráficos para sistemas maiores<br>Cenários de uso para sistemas mais simples, etc.</p></li></ul><p style=\"line-height: 2;\"></p></div>",
+    "<div class=\"metadata-header\" style=\"display:none;\">informatica|engenhariaRequisitos|requisitos|03-especificacao</div><div class=\"canvas-box\" data-id=\"box-17819672543760.9879729134157497\" style=\"position: absolute; left: 38.850006103515625px; top: 31.533340454101562px; width: 686px; height: 436px; z-index: 23;  \"><p><span style=\"color: rgb(69, 116, 68); font-size: 20px;\"><strong><em>Especificação do Sistema </em></strong></span></p><p></p><p>É o produto final produzido pelo engenheiro de requisitos </p><p></p><p style=\"line-height: 2;\">Serve como a base para:</p><ul><li><p style=\"line-height: 2;\">Engenharia de Software</p></li><li><p style=\"line-height: 2;\">Engenharia de Hardware</p></li><li><p style=\"line-height: 2;\">Engenharia de Banco Dados, etc. </p></li></ul><p style=\"line-height: 3;\">Descreve a função de um sistema de software e as restrições impostas a ele. </p><p style=\"line-height: 2;\">Também descreve as informações que entram e saem do sistema.</p><p style=\"line-height: 2;\"></p><p style=\"line-height: 2;\"><span style=\"color: rgb(69, 116, 68); font-size: 18px;\"><strong><em>Especificação do Sistema  resulta em Requisitos de Usuário e de Sistema</em></strong></span></p><p></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-06-20T15:00:52.309Z"
+}
