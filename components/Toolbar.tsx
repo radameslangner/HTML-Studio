@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { Editor } from '@tiptap/react';
 import {
   Bold,
@@ -116,6 +117,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [showSpecialCharsDialog, setShowSpecialCharsDialog] = useState(false);
   const [showLineHeightDialog, setShowLineHeightDialog] = useState(false);
   const [customLineHeight, setCustomLineHeight] = useState('1.5');
+  const [lineHeightPos, setLineHeightPos] = useState<{ top: number; left: number } | null>(null);
+  const lineHeightButtonRef = useRef<HTMLDivElement>(null);
 
   // Carregar cores do localStorage após a montagem do componente no cliente
   useEffect(() => {
@@ -237,11 +240,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const attrs = currentNode?.attrs || {};
     const height = attrs.lineHeight || '1.5';
     setCustomLineHeight(height.toString());
+    if (lineHeightButtonRef.current) {
+      const rect = lineHeightButtonRef.current.getBoundingClientRect();
+      setLineHeightPos({ top: rect.bottom + 8, left: rect.left });
+    }
     setShowLineHeightDialog(true);
   };
 
   const closeLineHeightDialog = () => {
     setShowLineHeightDialog(false);
+    setLineHeightPos(null);
     setCustomLineHeight('1.5');
   };
 
@@ -324,9 +332,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
     (editor?.chain().focus() as any).setFontSize(`${prevSize}px`).run();
   };
 
-  const isTableActive = editor?.isActive('table');
+  // isActive('table') is true even when cursor is at the table root, which causes
+  // "No cell with offset 1 found" when addColumnAfter/addRowAfter run outside a cell.
+  // We require the cursor to be inside a tableCell or tableHeader instead.
+  const isTableActive = editor?.isActive('tableCell') || editor?.isActive('tableHeader');
 
   return (
+    <>
     <div className="no-print bg-white/90 backdrop-blur-md border-b border-slate-200 p-2 flex flex-wrap items-center gap-1 sticky top-0 z-[100] shadow-sm px-4">
       {/* 1. Histórico */}
       <div className="flex items-center gap-0.5">
@@ -417,9 +429,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton disabled={!editor} onClick={increaseFontSize} title="Aumentar Tamanho (A+)">
           <span className="font-bold text-[18px]">A+</span>
         </ToolbarButton>
-        <ToolbarButton disabled={!editor} onClick={openLineHeightDialog} title="Altura da Linha">
-          <Sliders size={16} />
-        </ToolbarButton>
+        <div ref={lineHeightButtonRef}>
+          <ToolbarButton disabled={!editor} onClick={openLineHeightDialog} title="Altura da Linha">
+            <Sliders size={16} />
+          </ToolbarButton>
+        </div>
       </div>
 
       <Divider />
@@ -561,59 +575,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           </div>
         )}
 
-        {showLineHeightDialog && (
-          <div className="absolute top-full left-0 mt-2 z-50 w-max rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
-            <div className="flex flex-col gap-3">
-              <label className="text-xs font-medium text-slate-500 uppercase">Altura da Linha</label>
-              
-              {/* Valores Pré-definidos */}
-              <div className="flex flex-col gap-2">
-                {LINE_HEIGHTS.map(height => (
-                  <button
-                    key={height}
-                    onClick={() => applyLineHeight(height.toString())}
-                    className="text-left px-3 py-2 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-300 text-sm font-medium text-slate-700 transition-colors"
-                  >
-                    {height.toFixed(2)}x
-                  </button>
-                ))}
-              </div>
 
-              {/* Divisor */}
-              <div className="h-px bg-slate-200" />
-
-              {/* Campo Customizado */}
-              <div>
-                <label className="text-xs font-medium text-slate-500 mb-1 block">Valor Customizado</label>
-                <input
-                  value={customLineHeight}
-                  onChange={e => setCustomLineHeight(e.target.value)}
-                  className="w-32 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-500"
-                  placeholder="ex: 2.5"
-                  type="number"
-                  step="0.05"
-                  min="0.5"
-                />
-              </div>
-
-              {/* Botões */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={applyCustomLineHeight}
-                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  Aplicar
-                </button>
-                <button
-                  onClick={closeLineHeightDialog}
-                  className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-600 hover:bg-slate-50"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <Divider />
@@ -718,9 +680,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </ToolbarButton>
         {isTableActive && (
           <div className="flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-100">
-            <ToolbarButton onClick={() => editor?.chain().focus().addColumnAfter().run()} title="Add Coluna"><Columns size={14} /></ToolbarButton>
-            <ToolbarButton onClick={() => editor?.chain().focus().addRowAfter().run()} title="Add Linha"><Rows size={14} /></ToolbarButton>
-            <ToolbarButton onClick={() => editor?.chain().focus().deleteTable().run()} danger title="Excluir"><Trash2 size={14} /></ToolbarButton>
+            <ToolbarButton onClick={() => { try { editor?.chain().focus().addColumnAfter().run(); } catch (e) { console.warn('addColumnAfter:', e); } }} title="Add Coluna"><Columns size={14} /></ToolbarButton>
+            <ToolbarButton onClick={() => { try { editor?.chain().focus().addRowAfter().run(); } catch (e) { console.warn('addRowAfter:', e); } }} title="Add Linha"><Rows size={14} /></ToolbarButton>
+            <ToolbarButton onClick={() => { try { editor?.chain().focus().deleteTable().run(); } catch (e) { console.warn('deleteTable:', e); } }} danger title="Excluir"><Trash2 size={14} /></ToolbarButton>
           </div>
         )}
       </div>
@@ -805,6 +767,73 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </button>
       </div>
     </div>
+
+      {/* Portal: Altura da Linha - renderizado no body para escapar de overflow:hidden */}
+      {showLineHeightDialog && lineHeightPos && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <>
+          {/* Overlay para fechar ao clicar fora */}
+          <div
+            className="fixed inset-0 z-[9998]"
+            onClick={closeLineHeightDialog}
+          />
+          <div
+            style={{ top: lineHeightPos.top, left: lineHeightPos.left }}
+            className="fixed z-[9999] w-max rounded-xl border border-slate-200 bg-white p-3 shadow-2xl"
+          >
+            <div className="flex flex-col gap-3">
+              <label className="text-xs font-medium text-slate-500 uppercase">Altura da Linha</label>
+
+              {/* Valores Pré-definidos */}
+              <div className="flex flex-col gap-2">
+                {LINE_HEIGHTS.map(height => (
+                  <button
+                    key={height}
+                    onClick={() => applyLineHeight(height.toString())}
+                    className="text-left px-3 py-2 rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-300 text-sm font-medium text-slate-700 transition-colors"
+                  >
+                    {height.toFixed(2)}x
+                  </button>
+                ))}
+              </div>
+
+              {/* Divisor */}
+              <div className="h-px bg-slate-200" />
+
+              {/* Campo Customizado */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Valor Customizado</label>
+                <input
+                  value={customLineHeight}
+                  onChange={e => setCustomLineHeight(e.target.value)}
+                  className="w-32 rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-blue-500"
+                  placeholder="ex: 2.5"
+                  type="number"
+                  step="0.05"
+                  min="0.5"
+                />
+              </div>
+
+              {/* Botões */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={applyCustomLineHeight}
+                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Aplicar
+                </button>
+                <button
+                  onClick={closeLineHeightDialog}
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </>
   );
 };
 
