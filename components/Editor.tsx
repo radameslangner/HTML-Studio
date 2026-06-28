@@ -11,7 +11,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
-import { Table } from '@tiptap/extension-table';
+import { Table, TableView } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -270,11 +270,53 @@ const normalizeHtmlForComparison = (html: string): string => {
   return cleanedStyles.replace(/\s+/g, ' ').trim();
 };
 
+class CustomTableView extends TableView {
+  constructor(node: any, cellMinWidth: number) {
+    super(node, cellMinWidth);
+    this.applyCustomStyle();
+  }
+
+  update(node: any) {
+    const result = super.update(node);
+    this.applyCustomStyle();
+    return result;
+  }
+
+  applyCustomStyle() {
+    if (this.node.attrs.style) {
+      this.table.style.cssText = this.node.attrs.style;
+    }
+  }
+}
+
+const CustomTable = Table.extend({
+  addAttributes() {
+    return {
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute('style'),
+        renderHTML: attributes => {
+          if (!attributes.style) {
+            return {}
+          }
+          return { style: attributes.style }
+        },
+      },
+    }
+  },
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      View: CustomTableView,
+    }
+  }
+});
+
 const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: any, onFocus: any }) => {
   const editor = useEditor({
     extensions: [
       StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Highlight.configure({ multicolor: true }), Link, Image, Table.configure({ resizable: true }), TableRow, TableHeader, TableCell,
+      Highlight.configure({ multicolor: true }), Link, Image, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
       TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
     ],
     content: box.content,

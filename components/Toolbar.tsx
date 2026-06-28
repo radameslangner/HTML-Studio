@@ -120,6 +120,145 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [lineHeightPos, setLineHeightPos] = useState<{ top: number; left: number } | null>(null);
   const lineHeightButtonRef = useRef<HTMLDivElement>(null);
 
+  const [showTableMenu, setShowTableMenu] = useState(false);
+  const [tableMenuPos, setTableMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const tableMenuButtonRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidthState] = useState(100);
+  const [tableAlign, setTableAlignState] = useState<'left' | 'center' | 'right'>('left');
+
+  const setTableWidth = (pct: number) => {
+    if (!editor) return;
+    const { state, view } = editor;
+    const { from } = state.selection;
+    // Walk up from cursor to find the table node
+    let depth = state.doc.resolve(from).depth;
+    while (depth > 0) {
+      const node = state.doc.resolve(from).node(depth);
+      if (node.type.name === 'table') {
+        const pos = state.doc.resolve(from).before(depth);
+        const existingStyle: string = node.attrs?.style || '';
+        // Replace or add width in inline style
+        const withoutWidth = existingStyle.replace(/width\s*:[^;]+;?/g, '').trim();
+        const newStyle = `width:${pct}%;${withoutWidth ? ' ' + withoutWidth : ''}`;
+        const tr = state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+        view.dispatch(tr);
+        setTableWidthState(pct);
+        return;
+      }
+      depth--;
+    }
+  };
+
+  const setTableAlign = (align: 'left' | 'center' | 'right') => {
+    if (!editor) return;
+    const { state, view } = editor;
+    const { from } = state.selection;
+    let depth = state.doc.resolve(from).depth;
+    while (depth > 0) {
+      const node = state.doc.resolve(from).node(depth);
+      if (node.type.name === 'table') {
+        const pos = state.doc.resolve(from).before(depth);
+        const existingStyle: string = node.attrs?.style || '';
+        // Clean margin-left and margin-right
+        let cleanedStyle = existingStyle
+          .replace(/margin-left\s*:[^;]+;?/g, '')
+          .replace(/margin-right\s*:[^;]+;?/g, '')
+          .trim();
+        
+        let alignStyle = '';
+        if (align === 'center') {
+          alignStyle = 'margin-left:auto;margin-right:auto;';
+        } else if (align === 'right') {
+          alignStyle = 'margin-left:auto;margin-right:0;';
+        } else {
+          alignStyle = 'margin-left:0;margin-right:auto;';
+        }
+        
+        const newStyle = `${alignStyle}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
+        const tr = state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
+        view.dispatch(tr);
+        setTableAlignState(align);
+        return;
+      }
+      depth--;
+    }
+  };
+
+  const openTableMenu = () => {
+    if (tableMenuButtonRef.current) {
+      const rect = tableMenuButtonRef.current.getBoundingClientRect();
+      setTableMenuPos({ top: rect.bottom + 8, left: rect.left });
+    }
+    // Read current table width and alignment from the node
+    if (editor) {
+      const { state } = editor;
+      const { from } = state.selection;
+      let depth = state.doc.resolve(from).depth;
+      while (depth > 0) {
+        const node = state.doc.resolve(from).node(depth);
+        if (node.type.name === 'table') {
+          const style: string = node.attrs?.style || '';
+          const match = style.match(/width\s*:\s*([\d.]+)%/);
+          setTableWidthState(match ? Math.round(parseFloat(match[1])) : 100);
+
+          // Determine current alignment
+          const hasLeftAuto = /margin-left\s*:\s*auto/i.test(style);
+          const hasRightAuto = /margin-right\s*:\s*auto/i.test(style);
+          const hasRightZero = /margin-right\s*:\s*0/i.test(style);
+
+          if (hasLeftAuto && hasRightAuto) {
+            setTableAlignState('center');
+          } else if (hasLeftAuto && hasRightZero) {
+            setTableAlignState('right');
+          } else {
+            setTableAlignState('left');
+          }
+          break;
+        }
+        depth--;
+      }
+    }
+    setShowTableMenu(true);
+  };
+
+  const closeTableMenu = () => {
+    setShowTableMenu(false);
+    setTableMenuPos(null);
+  };
+
+  const tableAction = (fn: () => void) => {
+    try { fn(); } catch (e) { console.warn('table action:', e); }
+    closeTableMenu();
+  };
+
+  // Picker de inserção de tabela
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [tablePickerPos, setTablePickerPos] = useState<{ top: number; left: number } | null>(null);
+  const tableInsertButtonRef = useRef<HTMLDivElement>(null);
+  const [hoveredRows, setHoveredRows] = useState(1);
+  const [hoveredCols, setHoveredCols] = useState(1);
+  const TABLE_PICKER_MAX = 8;
+
+  const openTablePicker = () => {
+    if (tableInsertButtonRef.current) {
+      const rect = tableInsertButtonRef.current.getBoundingClientRect();
+      setTablePickerPos({ top: rect.bottom + 8, left: rect.left });
+    }
+    setHoveredRows(1);
+    setHoveredCols(1);
+    setShowTablePicker(true);
+  };
+
+  const closeTablePicker = () => {
+    setShowTablePicker(false);
+    setTablePickerPos(null);
+  };
+
+  const insertTableWithSize = (rows: number, cols: number) => {
+    editor?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+    closeTablePicker();
+  };
+
   // Carregar cores do localStorage após a montagem do componente no cliente
   useEffect(() => {
     setIsMounted(true);
@@ -671,18 +810,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       {/* 9. Tabelas */}
       <div className="flex items-center gap-0.5">
-        <ToolbarButton
-          onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-          title="Tabela (Arraste para inserir)"
-          draggable onDragStart={(e: any) => e.dataTransfer.setData('application/x-tiptap-drag-type', 'table')}
-        >
-          <TableIcon size={16} />
-        </ToolbarButton>
+        <div ref={tableInsertButtonRef}>
+          <ToolbarButton
+            onClick={openTablePicker}
+            isActive={showTablePicker}
+            title="Inserir Tabela — escolha as dimensões"
+            draggable onDragStart={(e: any) => e.dataTransfer.setData('application/x-tiptap-drag-type', 'table')}
+          >
+            <TableIcon size={16} />
+          </ToolbarButton>
+        </div>
         {isTableActive && (
-          <div className="flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-100">
-            <ToolbarButton onClick={() => { try { editor?.chain().focus().addColumnAfter().run(); } catch (e) { console.warn('addColumnAfter:', e); } }} title="Add Coluna"><Columns size={14} /></ToolbarButton>
-            <ToolbarButton onClick={() => { try { editor?.chain().focus().addRowAfter().run(); } catch (e) { console.warn('addRowAfter:', e); } }} title="Add Linha"><Rows size={14} /></ToolbarButton>
-            <ToolbarButton onClick={() => { try { editor?.chain().focus().deleteTable().run(); } catch (e) { console.warn('deleteTable:', e); } }} danger title="Excluir"><Trash2 size={14} /></ToolbarButton>
+          <div ref={tableMenuButtonRef}>
+            <ToolbarButton
+              onClick={openTableMenu}
+              isActive={showTableMenu}
+              title="Editar Tabela"
+            >
+              <span className="flex items-center gap-1">
+                <Columns size={14} />
+                <span className="text-[10px] font-bold leading-none">▾</span>
+              </span>
+            </ToolbarButton>
           </div>
         )}
       </div>
@@ -828,6 +977,249 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+
+      {/* Portal: Menu de Tabela */}
+      {showTableMenu && tableMenuPos && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={closeTableMenu} />
+          <div
+            style={{ top: tableMenuPos.top, left: tableMenuPos.left }}
+            className="fixed z-[9999] w-52 rounded-xl border border-slate-200 bg-white shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Editar Tabela</span>
+              <button onClick={closeTableMenu} className="text-slate-400 hover:text-slate-600 text-xs leading-none">✕</button>
+            </div>
+
+            {/* Seção: Colunas */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Columns size={10} /> Colunas
+              </p>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().addColumnBefore().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">⬅</span> Inserir coluna antes
+                </button>
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().addColumnAfter().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">➡</span> Inserir coluna depois
+                </button>
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().deleteColumn().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">✕</span> Remover coluna
+                </button>
+              </div>
+            </div>
+
+            {/* Seção: Linhas */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Rows size={10} /> Linhas
+              </p>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().addRowBefore().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">⬆</span> Inserir linha acima
+                </button>
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().addRowAfter().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">⬇</span> Inserir linha abaixo
+                </button>
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().deleteRow().run())}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors text-left"
+                >
+                  <span className="text-base leading-none">✕</span> Remover linha
+                </button>
+              </div>
+            </div>
+
+            {/* Seção: Alinhamento */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                <AlignLeft size={10} /> Alinhamento
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setTableAlign('left')}
+                  className={`flex-1 py-1.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                    tableAlign === 'left'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                  }`}
+                  title="Alinhar à Esquerda"
+                >
+                  <AlignLeft size={14} />
+                </button>
+                <button
+                  onClick={() => setTableAlign('center')}
+                  className={`flex-1 py-1.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                    tableAlign === 'center'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                  }`}
+                  title="Alinhar ao Centro"
+                >
+                  <AlignCenter size={14} />
+                </button>
+                <button
+                  onClick={() => setTableAlign('right')}
+                  className={`flex-1 py-1.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                    tableAlign === 'right'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                  }`}
+                  title="Alinhar à Direita"
+                >
+                  <AlignRight size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Seção: Tamanho */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                <span className="text-[10px]">&#x2194;</span> Largura da Tabela
+              </p>
+              {/* Atalhos rápidos */}
+              <div className="flex gap-1 mb-2">
+                {[25, 50, 75, 100].map(pct => (
+                  <button
+                    key={pct}
+                    onClick={() => setTableWidth(pct)}
+                    className={`flex-1 py-1 rounded-md text-[10px] font-bold border transition-all ${
+                      tableWidth === pct
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                    }`}
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+              {/* Slider */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min={20} max={100} step={5}
+                  value={tableWidth}
+                  onChange={e => setTableWidth(Number(e.target.value))}
+                  className="flex-1 accent-blue-600"
+                />
+                <span className="text-sm font-bold text-blue-600 w-10 text-right tabular-nums">{tableWidth}%</span>
+              </div>
+            </div>
+
+            {/* Seção: Tabela */}
+            <div className="px-3 py-2">
+              <button
+                onClick={() => tableAction(() => editor?.chain().focus().deleteTable().run())}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors text-left"
+              >
+                <Trash2 size={13} /> Excluir tabela inteira
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+
+      {/* Portal: Picker de tamanho de tabela */}
+      {showTablePicker && tablePickerPos && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <>
+          <div className="fixed inset-0 z-[9998]" onClick={closeTablePicker} />
+          <div
+            style={{ top: tablePickerPos.top, left: tablePickerPos.left }}
+            className="fixed z-[9999] rounded-xl border border-slate-200 bg-white shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Inserir Tabela</span>
+              <button onClick={closeTablePicker} className="text-slate-400 hover:text-slate-600 text-xs leading-none">✕</button>
+            </div>
+
+            {/* Label de dimensão */}
+            <div className="px-3 pt-2.5 pb-1 text-center">
+              <span className="text-sm font-bold text-blue-600 tabular-nums">
+                {hoveredRows} × {hoveredCols}
+              </span>
+              <span className="text-[11px] text-slate-400 ml-1.5">· com cabeçalho</span>
+            </div>
+
+            {/* Grade visual */}
+            <div className="px-3 pb-3 pt-1">
+              <div
+                className="grid gap-[3px]"
+                style={{ gridTemplateColumns: `repeat(${TABLE_PICKER_MAX}, 1fr)` }}
+              >
+                {Array.from({ length: TABLE_PICKER_MAX }, (_, rowIdx) =>
+                  Array.from({ length: TABLE_PICKER_MAX }, (_, colIdx) => {
+                    const r = rowIdx + 1;
+                    const c = colIdx + 1;
+                    const isActive = r <= hoveredRows && c <= hoveredCols;
+                    return (
+                      <div
+                        key={`${r}-${c}`}
+                        onMouseEnter={() => { setHoveredRows(r); setHoveredCols(c); }}
+                        onClick={() => insertTableWithSize(hoveredRows, hoveredCols)}
+                        className={`w-5 h-5 rounded-sm border cursor-pointer transition-all duration-75 ${
+                          isActive
+                            ? 'bg-blue-500 border-blue-400 scale-95'
+                            : 'bg-slate-100 border-slate-200 hover:bg-blue-100 hover:border-blue-300'
+                        }`}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Entradas manuais */}
+            <div className="px-3 pb-3 border-t border-slate-100 pt-2 flex items-center gap-2">
+              <div className="flex flex-col items-center gap-0.5">
+                <label className="text-[10px] text-slate-400 font-semibold uppercase">Linhas</label>
+                <input
+                  type="number"
+                  min={1} max={30}
+                  value={hoveredRows}
+                  onChange={e => setHoveredRows(Math.max(1, Math.min(30, Number(e.target.value))))}
+                  className="w-14 text-center rounded-lg border border-slate-200 px-1 py-1 text-sm outline-none focus:border-blue-500 font-bold"
+                />
+              </div>
+              <span className="text-slate-300 text-lg mt-4">×</span>
+              <div className="flex flex-col items-center gap-0.5">
+                <label className="text-[10px] text-slate-400 font-semibold uppercase">Colunas</label>
+                <input
+                  type="number"
+                  min={1} max={20}
+                  value={hoveredCols}
+                  onChange={e => setHoveredCols(Math.max(1, Math.min(20, Number(e.target.value))))}
+                  className="w-14 text-center rounded-lg border border-slate-200 px-1 py-1 text-sm outline-none focus:border-blue-500 font-bold"
+                />
+              </div>
+              <button
+                onClick={() => insertTableWithSize(hoveredRows, hoveredCols)}
+                className="mt-4 flex-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+              >
+                Inserir
+              </button>
             </div>
           </div>
         </>,
