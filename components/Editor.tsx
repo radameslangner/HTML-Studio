@@ -11,7 +11,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
-import { Table, TableView } from '@tiptap/extension-table';
+import { Table, TableOptions, TableView } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -27,7 +27,7 @@ import { Fraction } from '../lib/FractionNode';
 import { Root } from '../lib/RootNode';
 import { MarkdownPaste } from '../lib/MarkdownPasteExtension';
 import { Rnd } from 'react-rnd';
-import { Plus, Trash2, Layers, ChevronUp, ChevronDown, Square, Copy, Clipboard } from 'lucide-react';
+import { Plus, Trash2, Layers, ChevronUp, ChevronDown, Square, Copy, Clipboard, ArrowUpRight } from 'lucide-react';
 import Toolbar from './Toolbar';
 import { generatePrintableHtml, downloadHtmlFile } from '../lib/HtmlGenerator';
 
@@ -37,6 +37,17 @@ interface DrawingPath {
   points: { x: number; y: number }[];
   color: string;
   width: number;
+}
+
+interface CanvasArrow {
+  id: string;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  color: string;
+  width: number;
+  zIndex: number;
 }
 
 interface CanvasBox {
@@ -75,6 +86,26 @@ const parseHtmlToPaths = (html: string): DrawingPath[] => {
   });
 };
 
+const parseHtmlToArrows = (html: string): CanvasArrow[] => {
+  if (!html) return [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const arrowEls = doc.querySelectorAll('.canvas-arrow');
+  return Array.from(arrowEls).map(el => {
+    const svgEl = el as SVGElement;
+    return {
+      id: svgEl.getAttribute('data-id') || 'arrow-' + Date.now() + Math.random(),
+      startX: parseInt(svgEl.getAttribute('data-start-x') || '0') || 0,
+      startY: parseInt(svgEl.getAttribute('data-start-y') || '0') || 0,
+      endX: parseInt(svgEl.getAttribute('data-end-x') || '0') || 0,
+      endY: parseInt(svgEl.getAttribute('data-end-y') || '0') || 0,
+      color: svgEl.getAttribute('data-color') || '#3b82f6',
+      width: parseInt(svgEl.getAttribute('data-width') || '3') || 3,
+      zIndex: parseInt(svgEl.style.zIndex) || 1,
+    };
+  });
+};
+
 const parseHtmlToBoxes = (html: string): CanvasBox[] => {
   if (!html) return [];
   const parser = new DOMParser();
@@ -107,7 +138,27 @@ const parseHtmlToBoxes = (html: string): CanvasBox[] => {
   });
 };
 
-const serializeBoxesToHtml = (boxes: CanvasBox[], paths: DrawingPath[], metadataStr: string): string => {
+const serializeBoxesToHtml = (...args: any[]): string => {
+  let boxes: CanvasBox[];
+  let paths: DrawingPath[];
+  let metadataStr: string;
+  let arrows: CanvasArrow[] = [];
+
+  if (args.length === 1 && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+    const payload = args[0] as { boxes: CanvasBox[]; paths: DrawingPath[]; metadataStr: string; arrows?: CanvasArrow[] };
+    boxes = payload.boxes;
+    paths = payload.paths;
+    metadataStr = payload.metadataStr;
+    arrows = Array.isArray(payload.arrows) ? payload.arrows : [];
+  } else {
+    boxes = args[0] || [];
+    paths = args[1] || [];
+    metadataStr = args[2] || '';
+    arrows = Array.isArray(args[3]) ? args[3] : [];
+  }
+
+  const safeArrows = Array.isArray(arrows) ? arrows : [];
+  arrows = safeArrows;
   const boxesHtml = boxes.map(box => {
     const hasBorder = box.borderWidth && box.borderWidth > 0 && box.borderStyle && box.borderStyle !== 'none';
     const borderInlineStyle = hasBorder ? `border: ${box.borderWidth}px ${box.borderStyle} ${box.borderColor || '#000000'};` : '';
@@ -118,12 +169,34 @@ const serializeBoxesToHtml = (boxes: CanvasBox[], paths: DrawingPath[], metadata
     const borderRadiusAttr = box.borderRadius !== undefined ? `data-border-radius="${box.borderRadius}" ` : '';
     return `<div class="canvas-box" data-id="${box.id}" ${borderDataAttrs}${borderWidthAttr}${borderStyleAttr}${borderRadiusAttr}style="position: absolute; left: ${box.x}px; top: ${box.y}px; width: ${typeof box.width === 'number' ? box.width + 'px' : box.width}; height: ${typeof box.height === 'number' ? box.height + 'px' : box.height}; z-index: ${box.zIndex}; ${borderInlineStyle} ${radiusInlineStyle}">${box.content}</div>`;
   }).join('');
+  
   const pathsHtml = paths.map(p => {
     const d = p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
     return `<path d="${d}" stroke="${p.color}" stroke-width="${p.width}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
   }).join('');
+
+  const arrowsHtml = arrows.map(arrow => {
+    const x = Math.min(arrow.startX, arrow.endX);
+    const y = Math.min(arrow.startY, arrow.endY);
+    const w = Math.max(10, Math.abs(arrow.startX - arrow.endX));
+    const h = Math.max(10, Math.abs(arrow.startY - arrow.endY));
+    const x1 = arrow.startX - x;
+    const y1 = arrow.startY - y;
+    const x2 = arrow.endX - x;
+    const y2 = arrow.endY - y;
+    
+    return `<svg class="canvas-arrow" data-id="${arrow.id}" data-start-x="${arrow.startX}" data-start-y="${arrow.startY}" data-end-x="${arrow.endX}" data-end-y="${arrow.endY}" data-color="${arrow.color}" data-width="${arrow.width}" style="position: absolute; left: ${x}px; top: ${y}px; width: ${w}px; height: ${h}px; z-index: ${arrow.zIndex}; pointer-events: none; overflow: visible;">` +
+      `<defs>` +
+        `<marker id="arrowhead-${arrow.id}" markerWidth="10" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth">` +
+          `<polygon points="0 0, 10 3.5, 0 7" fill="${arrow.color}" />` +
+        `</marker>` +
+      `</defs>` +
+      `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${x2 === x1 && y2 === y1 ? y2 + 0.1 : y2}" stroke="${arrow.color}" stroke-width="${arrow.width}" marker-end="url(#arrowhead-${arrow.id})" />` +
+    `</svg>`;
+  }).join('');
+  
   const svgHtml = paths.length > 0 ? `<svg class="drawing-layer" style="position: absolute; inset: 0; pointer-events: none; width: 100%; height: 100%; z-index: 5;">${pathsHtml}</svg>` : '';
-  return `<div class="metadata-header" style="display:none;">${metadataStr}</div>${svgHtml}${boxesHtml}`;
+  return `<div class="metadata-header" style="display:none;">${metadataStr}</div>${svgHtml}${arrowsHtml}${boxesHtml}`;
 };
 
 // --- Border Panel Sub-Component ---
@@ -304,11 +377,13 @@ const CustomTable = Table.extend({
       },
     }
   },
-  addOptions() {
+  addOptions(): TableOptions {
+    const parentOptions = this.parent?.() ?? {};
+
     return {
-      ...this.parent?.(),
+      ...parentOptions,
       View: CustomTableView,
-    }
+    } as TableOptions;
   }
 });
 
@@ -354,9 +429,9 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
 
 // --- BoxWithBorder: Rnd wrapper with border panel ---
 
-const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, deleteBox, onFocus, onCopy }: {
+const BoxWithBorder = ({ box, activeTool, showGrid, updateBox, bringToFront, deleteBox, onFocus, onCopy }: {
   box: CanvasBox;
-  isPenActive: boolean;
+  activeTool: 'select' | 'pen' | 'arrow';
   showGrid: boolean;
   updateBox: (id: string, props: Partial<CanvasBox>) => void;
   bringToFront: (id: string) => void;
@@ -390,7 +465,7 @@ const BoxWithBorder = ({ box, isPenActive, showGrid, updateBox, bringToFront, de
       bounds="parent"
       dragHandleClassName="box-drag-handle"
       style={{ zIndex: box.zIndex }}
-      className={`group absolute ${isPenActive ? 'pointer-events-none' : ''}`}
+      className={`group absolute ${activeTool === 'select' ? 'pointer-events-auto' : 'pointer-events-none'}`}
     >
       {/* Floating action bar */}
       <div className="absolute -top-6 left-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity no-print" style={{ zIndex: 210 }}>
@@ -467,6 +542,7 @@ const Paper = ({
   onCopyBox,
   onPasteBox,
   hasClipboard,
+  activeTool,
 }: any) => {
   const [boxes, setBoxes] = useState<CanvasBox[]>([]);
   const [paths, setPaths] = useState<DrawingPath[]>([]);
@@ -491,7 +567,7 @@ const Paper = ({
     setBoxes(newBoxes);
     setPaths(newPaths);
     const metaStr = [disciplina, assunto, titulo, subtitulo].join('|');
-    onUpdate(index, serializeBoxesToHtml(newBoxes, newPaths, metaStr));
+    onUpdate(index, serializeBoxesToHtml({ boxes: newBoxes, paths: newPaths, metadataStr: metaStr }));
   };
 
   const updateBox = (id: string, newProps: Partial<CanvasBox>) => {
@@ -689,7 +765,7 @@ const Paper = ({
               <BoxWithBorder
                 key={box.id}
                 box={box}
-                isPenActive={isPenActive}
+                activeTool={activeTool}
                 showGrid={showGrid}
                 updateBox={updateBox}
                 bringToFront={bringToFront}
@@ -744,6 +820,7 @@ const Editor: React.FC<EditorProps> = ({
   disciplina, assunto, titulo, subtitulo, onMetadataChange, isSaving, saveSuccess, autosaveStatus, status, onStatusChange, initialContent, availableDisciplines
 }) => {
   const [isPenActive, setIsPenActive] = useState(false);
+  const [activeTool, setActiveTool] = useState<'select' | 'pen' | 'arrow'>('select');
   const [penColor, setPenColor] = useState('#3b82f6');
   const [activeEditor, setActiveEditor] = useState<any>(null);
   const [showGrid, setShowGrid] = useState(false);
@@ -803,7 +880,7 @@ const Editor: React.FC<EditorProps> = ({
     const existingBoxes = parseHtmlToBoxes(currentHtml);
     const existingPaths = parseHtmlToPaths(currentHtml);
     const metaStr = [disciplina, assunto, titulo, subtitulo].join('|');
-    onUpdatePage(pageIndex, serializeBoxesToHtml([...existingBoxes, newBox], existingPaths, metaStr));
+    onUpdatePage(pageIndex, serializeBoxesToHtml({ boxes: [...existingBoxes, newBox], paths: existingPaths, metadataStr: metaStr }));
     showToast('Bloco colado com toda a formatação!');
   }, [pages, disciplina, assunto, titulo, subtitulo, onUpdatePage]);
 
@@ -957,7 +1034,19 @@ const Editor: React.FC<EditorProps> = ({
           saveSuccess={saveSuccess} 
           onClear={() => {}} 
           isPenActive={isPenActive}
-          onTogglePen={() => setIsPenActive(!isPenActive)}
+          onTogglePen={() => {
+            setIsPenActive(!isPenActive);
+            setActiveTool(isPenActive ? 'select' : 'pen');
+          }}
+          activeTool={activeTool}
+          onChangeActiveTool={(tool) => {
+            setActiveTool(tool);
+            if (tool !== 'select') {
+              setIsPenActive(tool === 'pen');
+            } else {
+              setIsPenActive(false);
+            }
+          }}
           penColor={penColor}
           onPenColorChange={setPenColor}
           onClearDrawings={() => {}} 
@@ -1038,6 +1127,7 @@ const Editor: React.FC<EditorProps> = ({
               onPasteBox={() => handlePasteBox(idx)}
               onMouseEnter={() => setPasteTarget(idx)}
               hasClipboard={hasLocalClipboard}
+              activeTool={activeTool}
             />
           ))}
         </div>

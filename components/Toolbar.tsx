@@ -41,7 +41,8 @@ import {
   MousePointer2,
   FileCode,
   Grid,
-  Sliders
+  Sliders,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -53,8 +54,8 @@ interface ToolbarProps {
   onInsertImage?: (src: string) => void;
   isSaving?: boolean;
   saveSuccess?: boolean;
-  isPenActive: boolean;
-  onTogglePen: () => void;
+  activeTool: 'select' | 'pen' | 'arrow';
+  onChangeActiveTool: (tool: 'select' | 'pen' | 'arrow') => void;
   penColor: string;
   onPenColorChange: (color: string) => void;
   onClearDrawings: () => void;
@@ -82,7 +83,7 @@ const Divider = () => <div className="w-px h-6 bg-slate-200 mx-1" />;
 
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 30, 36, 48, 64];
 
-const LINE_HEIGHTS = [0.5, 1.0, 1.25, 1.5, 1.75, 2.0];
+const LINE_HEIGHTS = [0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0];
 
 // Cores padrão iniciais (valores estabelecidos em Hex/RGB)
 const DEFAULT_COLORS = [
@@ -99,7 +100,7 @@ const SPECIAL_CHARS = [
 
 const Toolbar: React.FC<ToolbarProps> = ({
   editor, onSave, onPrint, onClear, onExportHtml, onInsertImage, isSaving, saveSuccess,
-  isPenActive, onTogglePen, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
+  activeTool, onChangeActiveTool, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
 }) => {
   // Estado para armazenar as 5 cores, carregando do localStorage se existirem
   const [presetColors, setPresetColors] = useState(DEFAULT_COLORS);
@@ -841,25 +842,32 @@ const Toolbar: React.FC<ToolbarProps> = ({
       {/* 10. Desenho Livre */}
       <div className="flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-100">
         <ToolbarButton
-          onClick={() => isPenActive && onTogglePen()}
-          isActive={!isPenActive}
+          onClick={() => onChangeActiveTool('select')}
+          isActive={activeTool === 'select'}
           title="Modo Seleção (Esc)"
         >
           <MousePointer2 size={16} />
         </ToolbarButton>
         <ToolbarButton
-          onClick={() => !isPenActive && onTogglePen()}
-          isActive={isPenActive}
+          onClick={() => onChangeActiveTool('pen')}
+          isActive={activeTool === 'pen'}
           title="Caneta de Mão Livre (Desenhe na página)"
         >
           <Pencil size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => onChangeActiveTool('arrow')}
+          isActive={activeTool === 'arrow'}
+          title="Ferramenta de Seta (Clique e aponte)"
+        >
+          <ArrowUpRight size={16} />
         </ToolbarButton>
         <input
           type="color"
           onInput={(event: any) => onPenColorChange(event.target.value)}
           value={penColor}
-          className={`w-8 h-8 p-1 rounded-lg border border-slate-200 cursor-pointer bg-white ${!isPenActive ? 'opacity-40 grayscale pointer-events-none' : ''}`}
-          title="Cor da Caneta"
+          className={`w-8 h-8 p-1 rounded-lg border border-slate-200 cursor-pointer bg-white ${(activeTool !== 'pen' && activeTool !== 'arrow') ? 'opacity-40 grayscale pointer-events-none' : ''}`}
+          title="Cor da Caneta / Seta"
           suppressHydrationWarning
         />
         <ToolbarButton onClick={onClearDrawings} danger title="Apagar todos os desenhos">
