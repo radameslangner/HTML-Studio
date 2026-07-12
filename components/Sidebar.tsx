@@ -176,6 +176,11 @@ const RenderTree: React.FC<RenderTreeProps> = ({
                     }`} />
 
                   <div className="flex-1 min-w-0">
+                    {(item.disciplina || item.assunto) && (
+                      <div className={`text-[9px] font-black uppercase truncate mb-0.5 ${isActive ? 'text-blue-300' : 'text-slate-400'}`}>
+                        {item.disciplina}{item.disciplina && item.assunto ? ' • ' : ''}{item.assunto}
+                      </div>
+                    )}
                     <div className={`truncate font-bold text-[13px] ${isActive ? 'text-white' : 'text-slate-700'}`}>
                       {item.titulo || item.title}
                     </div>
