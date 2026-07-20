@@ -17,6 +17,9 @@ export const MarkdownPaste = Extension.create({
         props: {
           handleDOMEvents: {
             paste(view, event: ClipboardEvent) {
+              const html = event.clipboardData?.getData('text/html');
+              if (html) return false;
+
               const text = event.clipboardData?.getData('text/plain');
               if (!text) return false;
 

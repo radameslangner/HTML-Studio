@@ -395,6 +395,11 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
       TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
     ],
     content: box.content,
+    editorProps: {
+      attributes: {
+        class: 'h-full focus:outline-none',
+      },
+    },
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       updateBox(box.id, { content: editor.getHTML() });
@@ -421,8 +426,8 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
   }, [box.content, editor]);
 
   return (
-    <div className="w-full h-full bg-transparent max-w-none focus:outline-none cursor-text">
-      <EditorContent editor={editor} />
+    <div className="w-full h-full bg-transparent max-w-none focus:outline-none cursor-text flex flex-col">
+      <EditorContent editor={editor} className="h-full flex-1 [&>.ProseMirror]:h-full" />
     </div>
   );
 }
