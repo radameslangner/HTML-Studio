@@ -145,8 +145,8 @@ body {
   font-size: 1rem;
 }
 
-.ProseMirror p:empty {
-  display: none;
+.ProseMirror p:empty::before {
+  content: "\00a0";
 }
 
 .ProseMirror img {

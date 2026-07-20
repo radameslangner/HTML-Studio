@@ -592,6 +592,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleStrike().run()} isActive={editor?.isActive('strike')} title="Riscado">
           <Strikethrough size={16} />
         </ToolbarButton>
+        <div className="w-px h-4 bg-slate-200 mx-0.5" />
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().unsetAllMarks().run()} title="Limpar Formatação (Cores, Fontes, etc)">
+          <Eraser size={16} />
+        </ToolbarButton>
       </div>
 
       <Divider />

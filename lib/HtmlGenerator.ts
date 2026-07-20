@@ -110,8 +110,8 @@ export const generatePrintableHtml = (
             padding: 0 var(--canvas-padding);
         }
 
-        .ProseMirror p:empty {
-            display: none;
+        .ProseMirror p:empty::before {
+            content: "\\00a0";
         }
 
         .canvas-box {
@@ -133,7 +133,7 @@ export const generatePrintableHtml = (
         h2 { font-size: 24px; font-weight: 800; margin: 0; color: #1e293b; line-height: 1; }
         h3 { font-size: 20px; font-weight: 700; margin: 0; color: #334155; line-height: 1.1; }
         p { margin: 0 0 0.5rem 0; line-height: 1.5; color: #475569; }
-        p:empty { display: none; }
+        p:empty::before { content: "\\00a0"; }
         ol, ul { margin: 0; padding-left: 18px; }
         li { margin: 0; padding: 0; }
         table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
