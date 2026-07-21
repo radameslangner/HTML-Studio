@@ -978,6 +978,33 @@ const Editor: React.FC<EditorProps> = ({
     downloadHtmlFile(`${titulo}.html`, html);
   };
 
+  const handleExportPdf = async () => {
+    const html = generatePrintableHtml(pages, { disciplina, assunto, titulo, subtitulo });
+    
+    try {
+      // Importa dinamicamente para evitar erros de SSR no Next.js
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      const opt = {
+        margin:       5, // 5mm de margem de segurança
+        filename:     `${titulo || 'documento'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+          scale: 2, 
+          useCORS: true,
+          letterRendering: true, // Ajuda a manter o espaçamento das fontes
+        },
+        // Formato configurado para A5 paisagem, como no CSS
+        jsPDF:        { unit: 'mm', format: 'a5', orientation: 'landscape' }
+      };
+      
+      html2pdf().set(opt).from(html).save();
+    } catch (e) {
+      console.error('Erro ao gerar PDF:', e);
+      alert('Erro ao gerar PDF. Tente usar a função Imprimir -> Salvar como PDF.');
+    }
+  };
+
   const handleInsertImage = (src: string) => {
     const currentContent = pages[currentPage] || '';
     const newBox = `<div class="canvas-box" data-id="box-${Date.now()}" style="position: absolute; left: 40px; top: 40px; width: 300px; height: auto; z-index: 1;"><img src="${src}" alt="Imagem" style="max-width:100%; height:auto; display:block;" /></div>`;
@@ -1034,6 +1061,7 @@ const Editor: React.FC<EditorProps> = ({
           onSave={onSave} 
           onPrint={onPrint}
           onExportHtml={handleExportHtml}
+          onExportPdf={handleExportPdf}
           onInsertImage={handleInsertImage}
           isSaving={isSaving} 
           saveSuccess={saveSuccess} 

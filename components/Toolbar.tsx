@@ -51,6 +51,7 @@ interface ToolbarProps {
   onPrint: () => void;
   onClear: () => void;
   onExportHtml?: () => void;
+  onExportPdf?: () => void;
   onInsertImage?: (src: string) => void;
   isSaving?: boolean;
   saveSuccess?: boolean;
@@ -99,7 +100,7 @@ const SPECIAL_CHARS = [
 ];
 
 const Toolbar: React.FC<ToolbarProps> = ({
-  editor, onSave, onPrint, onClear, onExportHtml, onInsertImage, isSaving, saveSuccess,
+  editor, onSave, onPrint, onClear, onExportHtml, onExportPdf, onInsertImage, isSaving, saveSuccess,
   activeTool, onChangeActiveTool, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
 }) => {
   // Estado para armazenar as 5 cores, carregando do localStorage se existirem
@@ -593,7 +594,35 @@ const Toolbar: React.FC<ToolbarProps> = ({
           <Strikethrough size={16} />
         </ToolbarButton>
         <div className="w-px h-4 bg-slate-200 mx-0.5" />
-        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().unsetAllMarks().run()} title="Limpar Formatação (Cores, Fontes, etc)">
+        <ToolbarButton disabled={!editor} onClick={() => {
+          if (!editor) return;
+          
+          // Executamos de forma independente para que, se um falhar (ex: não tem alinhamento),
+          // os outros continuem funcionando sem abortar a transação.
+          editor.commands.unsetAllMarks();
+          
+          // Muitas vezes unsetAllMarks não limpa textStyle completamente. Limpamos explicitamente:
+          try { editor.commands.unsetColor(); } catch(e) {}
+          try { (editor.commands as any).unsetFontSize(); } catch(e) {}
+          try { editor.commands.unsetFontFamily(); } catch(e) {}
+          
+          if (editor.can().unsetTextAlign()) {
+            editor.commands.unsetTextAlign();
+          }
+          
+          // Se o texto colado for um Cabeçalho (H1-H3), Citação ou Bloco de Código,
+          // ele é um 'Node' e não uma 'Mark', então precisamos forçar a conversão para Parágrafo.
+          // setParagraph converte o bloco atual sem destruir tabelas ou o Canvas.
+          try { editor.commands.setParagraph(); } catch(e) {}
+          
+          // Limpa altura de linha diretamente nos atributos dos nós suportados
+          try {
+            editor.commands.updateAttributes('paragraph', { lineHeight: null });
+            editor.commands.updateAttributes('heading', { lineHeight: null });
+          } catch(e) {}
+
+          editor.commands.focus();
+        }} title="Limpar Formatação (Cores, Fontes, etc)">
           <Eraser size={16} />
         </ToolbarButton>
       </div>
@@ -907,6 +936,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
         >
           <FileCode size={14} />
           Exportar HTML
+        </button>
+        <button
+          onClick={onExportPdf}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-50 text-green-600 text-[11px] font-bold uppercase transition-all"
+          title="Exportar como arquivo PDF"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="green" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2a2 2 0 1 0 0-4H8v8"/><path d="M14 17h-2v-8h2a2 2 0 1 1 0 4h-2"/></svg>
+          Exportar PDF
         </button>
         <button
           onClick={onPrint}

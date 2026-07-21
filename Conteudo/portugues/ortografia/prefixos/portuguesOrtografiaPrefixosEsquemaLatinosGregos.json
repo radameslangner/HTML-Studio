@@ -1,0 +1,12 @@
+{
+  "disciplina": "portugues",
+  "assunto": "ortografia",
+  "titulo": "prefixos",
+  "subtitulo": "esquema latinos gregos",
+  "slug": "portuguesOrtografiaPrefixosEsquemaLatinosGregos",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">portugues|ortografia|prefixos|esquema latinos gregos</div><div class=\"canvas-box\" data-id=\"box-17846335253160.06372373815090515\" style=\"position: absolute; left: 45.84375px; top: 26.5px; width: 224px; height: 303px; z-index: 11;  \"><p style=\"line-height: 2;\">LATIM </p><p style=\"line-height: 1.5;\">├── re- → novamente </p><p style=\"line-height: 1.5;\">├── des- → negação </p><p style=\"line-height: 1.5;\">├── sub- → abaixo </p><p style=\"line-height: 1.5;\">├── super- → acima </p><p style=\"line-height: 1.5;\">├── inter- → entre </p><p style=\"line-height: 1.5;\">├── intra- → dentro </p><p style=\"line-height: 1.5;\">├── extra- → fora </p><p style=\"line-height: 1.5;\">├── pré- → antes </p><p style=\"line-height: 1.5;\">├── pós- → depois </p><p style=\"line-height: 1.5;\">├── trans- → através</p><p style=\"line-height: 2;\"></p></div><div class=\"canvas-box\" data-id=\"box-17846336377210.5950807533510303\" style=\"position: absolute; left: 296.84375px; top: 23.5px; width: 253px; height: 388px; z-index: 18;  \"><p style=\"line-height: 1.5;\"> GREGO </p><p style=\"line-height: 1.5;\">├── anti- → contra </p><p style=\"line-height: 1.5;\">├── auto- → por si mesmo </p><p style=\"line-height: 1.5;\">├── hiper- → excesso </p><p style=\"line-height: 1.5;\">├── hipo- → deficiência </p><p style=\"line-height: 1.5;\">├── macro- → grande </p><p style=\"line-height: 1.5;\">├── micro- → pequeno </p><p style=\"line-height: 1.5;\">├── tele- → distância </p><p style=\"line-height: 1.5;\">├── neo- → novo </p><p style=\"line-height: 1.5;\">├── pseudo- → falso </p><p style=\"line-height: 1.5;\">├── proto- → primeiro </p><p style=\"line-height: 1.5;\">├── poli- → muitos </p><p style=\"line-height: 1.5;\">├── orto- → correto</p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-07-21T11:35:26.590Z"
+}

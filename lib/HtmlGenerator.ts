@@ -199,8 +199,12 @@ export const generatePrintableHtml = (
               });
           }
           
-          // Remove estilos inline
+          // Remove estilos inline de margin auto se existirem na raiz, mas a principal limpeza é das marcações.
           cleanHtml = cleanHtml.replace(/\s+style="[^"]*"/g, '').trim();
+          
+          // CRÍTICO para PDF (html2canvas): Força parágrafos vazios a terem altura
+          // html2canvas ignora pseudo-elementos como p:empty::before
+          cleanHtml = cleanHtml.replace(/<p><\/p>/g, '<p>&nbsp;</p>');
           
           return `
         <div class="print-page">
