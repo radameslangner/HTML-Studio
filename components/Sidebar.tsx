@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Search,
   Pencil,
+  Trash2,
   Check,
   X,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ interface SidebarProps {
   onRefresh: () => void;
   currentSlug?: string;
   onRename: (item: any, newMeta: { disciplina: string; assunto: string; titulo: string; subtitulo: string }) => Promise<void>;
+  onDelete: (item: any) => Promise<void>;
 }
 
 interface RenameState {
@@ -45,6 +47,7 @@ interface RenderTreeProps {
   cancelRename: () => void;
   onSelectItem: (item: any) => void;
   startRename: (e: React.MouseEvent, item: any) => void;
+  onDelete: (item: any) => Promise<void>;
 }
 
 const RenderTree: React.FC<RenderTreeProps> = ({
@@ -61,6 +64,7 @@ const RenderTree: React.FC<RenderTreeProps> = ({
   cancelRename,
   onSelectItem,
   startRename,
+  onDelete,
 }) => {
   const entries = Object.entries(tree).sort(([aName, a]: any, [bName, b]: any) => {
     if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
@@ -105,6 +109,7 @@ const RenderTree: React.FC<RenderTreeProps> = ({
                   cancelRename={cancelRename}
                   onSelectItem={onSelectItem}
                   startRename={startRename}
+                  onDelete={onDelete}
                 />
               )}
             </div>
@@ -190,21 +195,53 @@ const RenderTree: React.FC<RenderTreeProps> = ({
                       </div>
                     )}
                   </div>
-                  <FileText size={14} className={isActive ? 'text-blue-400' : 'text-slate-300 opacity-0 group-hover/item:opacity-100 transition-opacity'} />
                 </button>
 
-                {/* Rename button — appears on hover */}
-                <button
-                  onClick={e => startRename(e, item)}
-                  title="Renomear"
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg opacity-0 group-hover/item:opacity-100 transition-all ${
-                    isActive
-                      ? 'text-blue-300 hover:bg-white/10'
-                      : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
-                  }`}
-                >
-                  <Pencil size={12} />
-                </button>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-all">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      onSelectItem(item);
+                    }}
+                    title="Abrir"
+                    className={`p-1 rounded-lg ${
+                      isActive
+                        ? 'text-blue-300 hover:bg-white/10'
+                        : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
+                    }`}
+                  >
+                    <FileText size={12} />
+                  </button>
+
+                  <button
+                    onClick={e => startRename(e, item)}
+                    title="Renomear"
+                    className={`p-1 rounded-lg ${
+                      isActive
+                        ? 'text-blue-300 hover:bg-white/10'
+                        : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
+                    }`}
+                  >
+                    <Pencil size={12} />
+                  </button>
+
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      if (window.confirm('Excluir este documento permanentemente?')) {
+                        void onDelete(item);
+                      }
+                    }}
+                    title="Excluir"
+                    className={`p-1 rounded-lg ${
+                      isActive
+                        ? 'text-red-300 hover:bg-white/10'
+                        : 'text-slate-400 hover:bg-red-100 hover:text-red-600'
+                    }`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -214,7 +251,7 @@ const RenderTree: React.FC<RenderTreeProps> = ({
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ items, onSelectItem, onNew, onRefresh, currentSlug, onRename }) => {
+const Sidebar: React.FC<SidebarProps> = ({ items, onSelectItem, onNew, onRefresh, currentSlug, onRename, onDelete }) => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [renaming, setRenaming] = useState<RenameState | null>(null);
@@ -351,6 +388,7 @@ const Sidebar: React.FC<SidebarProps> = ({ items, onSelectItem, onNew, onRefresh
             cancelRename={cancelRename}
             onSelectItem={onSelectItem}
             startRename={startRename}
+            onDelete={onDelete}
           />
         )}
       </div>

@@ -310,6 +310,48 @@ export default function Home() {
     await fetchFolders();
   };
 
+  const handleDelete = async (item: any) => {
+    try {
+      const res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert('Erro ao excluir: ' + (data.error || 'Erro desconhecido'));
+        return;
+      }
+
+      if (item.slug === slug) {
+        setPages([INITIAL_CONTENT]);
+        setCurrentPage(0);
+        setTitulo('Titulo');
+        setDisciplina('Disciplina');
+        setAssunto('Assunto');
+        setSubtitulo('Subtítulo');
+        setSlug(undefined);
+        setStatus('study');
+        lastSavedStateRef.current = JSON.stringify({
+          pages: [INITIAL_CONTENT],
+          status: 'study',
+          titulo: 'Titulo',
+          disciplina: 'Disciplina',
+          assunto: 'Assunto',
+          subtitulo: 'Subtítulo'
+        });
+        setAutosaveStatus('disabled');
+      }
+
+      await fetchList();
+      await fetchFolders();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Erro ao excluir o documento.');
+    }
+  };
+
   const changeStatus = (newStatus: any) => {
     setStatus(newStatus);
   };
@@ -375,6 +417,7 @@ export default function Home() {
         onRefresh={fetchList}
         currentSlug={slug}
         onRename={handleRename}
+        onDelete={handleDelete}
       />
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:block">
