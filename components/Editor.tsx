@@ -387,11 +387,39 @@ const CustomTable = Table.extend({
   }
 });
 
+const CustomImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute('style'),
+        renderHTML: attributes => {
+          if (!attributes.style) {
+            return {}
+          }
+          return { style: attributes.style }
+        },
+      },
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute('class'),
+        renderHTML: attributes => {
+          if (!attributes.class) {
+            return {}
+          }
+          return { class: attributes.class }
+        },
+      }
+    }
+  }
+});
+
 const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: any, onFocus: any }) => {
   const editor = useEditor({
     extensions: [
       StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Highlight.configure({ multicolor: true }), Link, Image, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
+      Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
       TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
     ],
     content: box.content,
@@ -548,6 +576,8 @@ const Paper = ({
   onPasteBox,
   hasClipboard,
   activeTool,
+  isActive,
+  onPageClick,
 }: any) => {
   const [boxes, setBoxes] = useState<CanvasBox[]>([]);
   const [paths, setPaths] = useState<DrawingPath[]>([]);
@@ -581,6 +611,18 @@ const Paper = ({
   };
 
   const deleteBox = (id: string) => {
+    const box = boxes.find(b => b.id === id);
+    if (box?.content) {
+      // Extrai todas as URLs /uploads/* presentes no conteúdo do bloco
+      const uploadUrls = [...box.content.matchAll(/src="(\/uploads\/[^"]+)"/g)].map(m => m[1]);
+      uploadUrls.forEach(url => {
+        fetch('/api/upload', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        }).catch(err => console.warn('Erro ao excluir imagem do disco:', err));
+      });
+    }
     handleUpdate(boxes.filter(b => b.id !== id), paths);
   };
 
@@ -649,7 +691,7 @@ const Paper = ({
 
 
   return (
-    <div className="relative group/page">
+    <div className="relative group/page" onClick={onPageClick}>
       {/* Botões de Ações na Lateral Esquerda */}
       <div className="absolute -left-12 top-0 opacity-0 group-hover/page:opacity-100 transition-opacity no-print flex flex-col gap-2 z-[60]">
         {/* Mover para Cima */}
@@ -698,7 +740,7 @@ const Paper = ({
       </div>
 
       <div 
-        className="paper shrink-0 relative"
+        className={`paper shrink-0 relative transition-all duration-300 ${isActive ? 'outline outline-[2px] outline-blue-300 outline-offset-[2px] z-10' : 'outline outline-[0px] outline-transparent outline-offset-0 z-0'}`}
         onDrop={handleCanvasDrop}
         onDragOver={(e) => e.preventDefault()}
       >
@@ -1007,7 +1049,12 @@ const Editor: React.FC<EditorProps> = ({
 
   const handleInsertImage = (src: string) => {
     const currentContent = pages[currentPage] || '';
-    const newBox = `<div class="canvas-box" data-id="box-${Date.now()}" style="position: absolute; left: 40px; top: 40px; width: 300px; height: auto; z-index: 1;"><img src="${src}" alt="Imagem" style="max-width:100%; height:auto; display:block;" /></div>`;
+    
+    // Deslocamento para evitar que as imagens fiquem perfeitamente sobrepostas
+    const boxCount = (currentContent.match(/class="canvas-box"/g) || []).length;
+    const offset = 40 + (boxCount * 20);
+    
+    const newBox = `<div class="canvas-box" data-id="box-${Date.now()}" style="position: absolute; left: ${offset}px; top: ${offset}px; width: 300px; height: 300px; z-index: 1;"><img src="${src}" alt="Imagem" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`;
     onUpdatePage(currentPage, `${currentContent}${newBox}`);
   };
 
@@ -1085,6 +1132,9 @@ const Editor: React.FC<EditorProps> = ({
           onClearDrawings={() => {}} 
           showGrid={showGrid}
           onToggleGrid={() => setShowGrid(!showGrid)}
+          disciplina={disciplina}
+          assunto={assunto}
+          titulo={titulo}
         />
 
         {/* Editor Metadata Bar */}
@@ -1132,11 +1182,14 @@ const Editor: React.FC<EditorProps> = ({
 
       <div className="editor-workspace custom-scrollbar" onClick={handleWorkspaceClick}>
         <div className="pages-container">
-          {pages.map((content, idx) => (
+          {pages.map((content, idx) => {
+            const isActive = currentPage === idx;
+            return (
             <Paper
               key={idx}
               index={idx}
               content={content}
+              isActive={isActive}
               onUpdate={onUpdatePage}
               onFocus={setActiveEditor}
               onDeselect={() => {
@@ -1159,10 +1212,12 @@ const Editor: React.FC<EditorProps> = ({
               onCopyBox={handleCopyBox}
               onPasteBox={() => handlePasteBox(idx)}
               onMouseEnter={() => setPasteTarget(idx)}
+              onPageClick={() => onPageChange(idx)}
               hasClipboard={hasLocalClipboard}
               activeTool={activeTool}
             />
-          ))}
+            );
+          })}
         </div>
       </div>
 

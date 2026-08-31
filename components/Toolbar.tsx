@@ -62,6 +62,10 @@ interface ToolbarProps {
   onClearDrawings: () => void;
   showGrid: boolean;
   onToggleGrid: () => void;
+  // contexto do documento para nomear imagens
+  disciplina?: string;
+  assunto?: string;
+  titulo?: string;
 }
 
 const ToolbarButton = ({ onClick, isActive, title, children, disabled = false, danger = false, draggable = false, onDragStart }: any) => (
@@ -101,7 +105,8 @@ const SPECIAL_CHARS = [
 
 const Toolbar: React.FC<ToolbarProps> = ({
   editor, onSave, onPrint, onClear, onExportHtml, onExportPdf, onInsertImage, isSaving, saveSuccess,
-  activeTool, onChangeActiveTool, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid
+  activeTool, onChangeActiveTool, penColor, onPenColorChange, onClearDrawings, showGrid, onToggleGrid,
+  disciplina = '', assunto = '', titulo = '',
 }) => {
   // Estado para armazenar as 5 cores, carregando do localStorage se existirem
   const [presetColors, setPresetColors] = useState(DEFAULT_COLORS);
@@ -416,9 +421,34 @@ const Toolbar: React.FC<ToolbarProps> = ({
     if (!file) return;
 
     try {
-      const src = await readFileAsDataUrl(file);
-      const chain = editor?.chain().focus();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('disciplina', disciplina);
+      formData.append('assunto', assunto);
+      formData.append('titulo', titulo);
+      
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      
+      if (!data.success) {
+        console.error('Error uploading image:', data.error);
+        alert('Erro ao enviar imagem.');
+        return;
+      }
+      
+      const src = data.url;
 
+      // Sempre insere como um novo bloco na página (CanvasBox) para permitir redimensionamento fácil
+      if (onInsertImage) {
+        onInsertImage(src);
+        return;
+      }
+
+      // Fallback
+      const chain = editor?.chain().focus();
       if (editor && editor.can().setImage({ src })) {
         chain?.setImage({ src }).run();
         return;
@@ -429,16 +459,12 @@ const Toolbar: React.FC<ToolbarProps> = ({
         return;
       }
 
-      if (onInsertImage) {
-        onInsertImage(src);
-        return;
-      }
-
       if (editor) {
         chain?.insertContent(`<img src="${src}" alt="Imagem" />`).run();
       }
     } catch (error) {
       console.error('Erro ao carregar imagem:', error);
+      alert('Erro ao enviar imagem.');
     } finally {
       event.target.value = '';
     }
