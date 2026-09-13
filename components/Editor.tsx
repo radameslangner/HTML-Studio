@@ -112,13 +112,13 @@ const parseHtmlToBoxes = (html: string): CanvasBox[] => {
   const doc = parser.parseFromString(html, 'text/html');
   const boxEls = doc.querySelectorAll('.canvas-box');
   if (boxEls.length === 0) {
-     // Verifica se há conteúdo real além do metadata-header (que sempre existe no HTML serializado)
-     const bodyClone = doc.body.cloneNode(true) as HTMLElement;
-     bodyClone.querySelectorAll('.metadata-header').forEach(el => el.remove());
-     if (bodyClone.innerHTML.trim() !== '') {
-        return [{ id: 'box-' + Date.now(), x: 40, y: 40, width: 400, height: 'auto', zIndex: 1, content: doc.body.innerHTML }];
-     }
-     return [];
+    // Verifica se há conteúdo real além do metadata-header (que sempre existe no HTML serializado)
+    const bodyClone = doc.body.cloneNode(true) as HTMLElement;
+    bodyClone.querySelectorAll('.metadata-header').forEach(el => el.remove());
+    if (bodyClone.innerHTML.trim() !== '') {
+      return [{ id: 'box-' + Date.now(), x: 40, y: 40, width: 400, height: 'auto', zIndex: 1, content: doc.body.innerHTML }];
+    }
+    return [];
   }
   return Array.from(boxEls).map(el => {
     const htmlEl = el as HTMLElement;
@@ -126,8 +126,19 @@ const parseHtmlToBoxes = (html: string): CanvasBox[] => {
       id: htmlEl.getAttribute('data-id') || 'box-' + Date.now() + Math.random(),
       x: parseInt(htmlEl.style.left) || 0,
       y: parseInt(htmlEl.style.top) || 0,
-      width: htmlEl.style.width === 'auto' ? 'auto' : parseInt(htmlEl.style.width) || 300,
-      height: htmlEl.style.height === 'auto' ? 'auto' : parseInt(htmlEl.style.height) || 'auto',
+      // width: htmlEl.style.width === 'auto' ? 'auto' : parseInt(htmlEl.style.width) || 300,
+      // height: htmlEl.style.height === 'auto' ? 'auto' : parseInt(htmlEl.style.height) || 'auto',
+      width: htmlEl.style.width === 'auto'
+        ? 'auto'
+        : htmlEl.style.width.includes('%')
+          ? htmlEl.style.width
+          : parseInt(htmlEl.style.width) || 300,
+
+      height: htmlEl.style.height === 'auto'
+        ? 'auto'
+        : htmlEl.style.height.includes('%')
+          ? htmlEl.style.height
+          : parseInt(htmlEl.style.height) || 'auto',
       zIndex: parseInt(htmlEl.style.zIndex) || 1,
       content: htmlEl.innerHTML,
       borderColor: htmlEl.getAttribute('data-border-color') || undefined,
@@ -169,7 +180,7 @@ const serializeBoxesToHtml = (...args: any[]): string => {
     const borderRadiusAttr = box.borderRadius !== undefined ? `data-border-radius="${box.borderRadius}" ` : '';
     return `<div class="canvas-box" data-id="${box.id}" ${borderDataAttrs}${borderWidthAttr}${borderStyleAttr}${borderRadiusAttr}style="position: absolute; left: ${box.x}px; top: ${box.y}px; width: ${typeof box.width === 'number' ? box.width + 'px' : box.width}; height: ${typeof box.height === 'number' ? box.height + 'px' : box.height}; z-index: ${box.zIndex}; ${borderInlineStyle} ${radiusInlineStyle}">${box.content}</div>`;
   }).join('');
-  
+
   const pathsHtml = paths.map(p => {
     const d = p.points.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
     return `<path d="${d}" stroke="${p.color}" stroke-width="${p.width}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
@@ -184,17 +195,17 @@ const serializeBoxesToHtml = (...args: any[]): string => {
     const y1 = arrow.startY - y;
     const x2 = arrow.endX - x;
     const y2 = arrow.endY - y;
-    
+
     return `<svg class="canvas-arrow" data-id="${arrow.id}" data-start-x="${arrow.startX}" data-start-y="${arrow.startY}" data-end-x="${arrow.endX}" data-end-y="${arrow.endY}" data-color="${arrow.color}" data-width="${arrow.width}" style="position: absolute; left: ${x}px; top: ${y}px; width: ${w}px; height: ${h}px; z-index: ${arrow.zIndex}; pointer-events: none; overflow: visible;">` +
       `<defs>` +
-        `<marker id="arrowhead-${arrow.id}" markerWidth="10" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth">` +
-          `<polygon points="0 0, 10 3.5, 0 7" fill="${arrow.color}" />` +
-        `</marker>` +
+      `<marker id="arrowhead-${arrow.id}" markerWidth="10" markerHeight="7" refX="6" refY="3.5" orient="auto" markerUnits="strokeWidth">` +
+      `<polygon points="0 0, 10 3.5, 0 7" fill="${arrow.color}" />` +
+      `</marker>` +
       `</defs>` +
       `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${x2 === x1 && y2 === y1 ? y2 + 0.1 : y2}" stroke="${arrow.color}" stroke-width="${arrow.width}" marker-end="url(#arrowhead-${arrow.id})" />` +
-    `</svg>`;
+      `</svg>`;
   }).join('');
-  
+
   const svgHtml = paths.length > 0 ? `<svg class="drawing-layer" style="position: absolute; inset: 0; pointer-events: none; width: 100%; height: 100%; z-index: 5;">${pathsHtml}</svg>` : '';
   return `<div class="metadata-header" style="display:none;">${metadataStr}</div>${svgHtml}${arrowsHtml}${boxesHtml}`;
 };
@@ -202,8 +213,8 @@ const serializeBoxesToHtml = (...args: any[]): string => {
 // --- Border Panel Sub-Component ---
 
 const BORDER_STYLES = [
-  { value: 'none',   label: 'Nenhuma' },
-  { value: 'solid',  label: 'Sólida' },
+  { value: 'none', label: 'Nenhuma' },
+  { value: 'solid', label: 'Sólida' },
   { value: 'dashed', label: 'Tracejada' },
   { value: 'dotted', label: 'Pontilhada' },
   { value: 'double', label: 'Dupla' },
@@ -250,11 +261,10 @@ const BorderPanel = ({ box, onUpdate, onClose }: { box: CanvasBox; onUpdate: (pr
             <button
               key={bs.value}
               onClick={() => { setStyle(bs.value); apply(color, width, bs.value, radius); }}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${
-                style === bs.value
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${style === bs.value
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
             >
               {bs.label}
             </button>
@@ -442,7 +452,7 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
     if (editor) {
       const currentNormalized = normalizeHtmlForComparison(editor.getHTML());
       const incomingNormalized = normalizeHtmlForComparison(box.content);
-      
+
       if (incomingNormalized !== currentNormalized) {
         // Evita atualizar o conteúdo do editor se ele estiver focado ou em processo de composição (IME / acentuação)
         if (editor.isFocused || editor.view.composing) {
@@ -521,11 +531,10 @@ const BoxWithBorder = ({ box, activeTool, showGrid, updateBox, bringToFront, del
           <button
             onClick={() => setShowBorderPanel(v => !v)}
             title="Editar Borda"
-            className={`h-6 w-6 rounded flex items-center justify-center transition-all ${
-              hasBorder
-                ? 'bg-indigo-500 text-white border border-indigo-600 shadow-md'
-                : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
-            }`}
+            className={`h-6 w-6 rounded flex items-center justify-center transition-all ${hasBorder
+              ? 'bg-indigo-500 text-white border border-indigo-600 shadow-md'
+              : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
+              }`}
           >
             <Square size={11} />
           </button>
@@ -555,17 +564,17 @@ const BoxWithBorder = ({ box, activeTool, showGrid, updateBox, bringToFront, del
   );
 };
 
-const Paper = ({ 
-  index, 
-  content, 
-  onUpdate, 
-  onFocus, 
+const Paper = ({
+  index,
+  content,
+  onUpdate,
+  onFocus,
   onDeselect,
-  isPenActive, 
+  isPenActive,
   penColor,
-  disciplina, 
-  assunto, 
-  titulo, 
+  disciplina,
+  assunto,
+  titulo,
   subtitulo,
   onRemove,
   onMove,
@@ -640,7 +649,7 @@ const Paper = ({
     const x = e.clientX - paperRect.left;
     const y = e.clientY - paperRect.top;
 
-    let initContent = '<p>Novo conteúdo</p>';
+    let initContent = '<p></p>';
     if (dragType === 'h1') initContent = '<h1>Título 1</h1>';
     else if (dragType === 'h2') initContent = '<h2>Título 2</h2>';
     else if (dragType === 'h3') initContent = '<h3>Título 3</h3>';
@@ -657,9 +666,9 @@ const Paper = ({
 
     const newBox: CanvasBox = {
       id: 'box-' + Date.now() + Math.random(),
-      x, y,
-      width: 300,
-      height: 'auto',
+      x: 20, y: 30,
+      width: '95%',
+      height: '90%',
       zIndex: Math.max(0, ...boxes.map(b => b.zIndex)) + 1,
       content: initContent
     };
@@ -696,7 +705,7 @@ const Paper = ({
       <div className="absolute -left-12 top-0 opacity-0 group-hover/page:opacity-100 transition-opacity no-print flex flex-col gap-2 z-[60]">
         {/* Mover para Cima */}
         {!isFirst && (
-          <button 
+          <button
             onClick={() => onMove?.('up')}
             className="p-2 rounded-xl bg-white text-slate-500 hover:text-blue-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
             title="Mover Página para Cima"
@@ -704,10 +713,10 @@ const Paper = ({
             <ChevronUp size={20} />
           </button>
         )}
-        
+
         {/* Mover para Baixo */}
         {!isLast && (
-          <button 
+          <button
             onClick={() => onMove?.('down')}
             className="p-2 rounded-xl bg-white text-slate-500 hover:text-blue-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
             title="Mover Página para Baixo"
@@ -729,7 +738,7 @@ const Paper = ({
 
         {/* Remover Página (Apenas se não for a única) */}
         {(!isFirst || !isLast) && (
-          <button 
+          <button
             onClick={onRemove}
             className="p-2 rounded-xl bg-white text-slate-400 hover:text-red-600 border border-slate-200 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 active:scale-95 cursor-pointer flex items-center justify-center"
             title="Remover Página"
@@ -739,7 +748,7 @@ const Paper = ({
         )}
       </div>
 
-      <div 
+      <div
         className={`paper shrink-0 relative transition-all duration-300 ${isActive ? 'outline outline-[2px] outline-blue-300 outline-offset-[2px] z-10' : 'outline outline-[0px] outline-transparent outline-offset-0 z-0'}`}
         onDrop={handleCanvasDrop}
         onDragOver={(e) => e.preventDefault()}
@@ -764,7 +773,7 @@ const Paper = ({
           </div>
         </div>
 
-        <div 
+        <div
           className={`paper-inner w-full relative bg-white ${isPenActive ? 'cursor-crosshair' : ''} ${showGrid ? 'show-grid' : ''}`}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -800,30 +809,30 @@ const Paper = ({
               />
             )}
           </svg>
-           
-           {/* Margem de Segurança / Sangria (Oculta na impressão) */}
-           <div className="absolute inset-0 border-2 border-red-300/10 border-dashed pointer-events-none z-0 print:border-none">
-              <span className="absolute -top-4 left-2 text-red-300/30 text-[10px] font-bold uppercase tracking-widest select-none no-print">
-                  PÁGINA A5 PAISAGEM (210 x 148.5)
-              </span>
-           </div>
 
-           {boxes.map(box => (
-              <BoxWithBorder
-                key={box.id}
-                box={box}
-                activeTool={activeTool}
-                showGrid={showGrid}
-                updateBox={updateBox}
-                bringToFront={bringToFront}
-                deleteBox={deleteBox}
-                onFocus={onFocus}
-                onCopy={onCopyBox}
-              />
-           ))}
+          {/* Margem de Segurança / Sangria (Oculta na impressão) */}
+          <div className="absolute inset-0 border-2 border-red-300/10 border-dashed pointer-events-none z-0 print:border-none">
+            <span className="absolute -top-4 left-2 text-red-300/30 text-[10px] font-bold uppercase tracking-widest select-none no-print">
+              PÁGINA A5 PAISAGEM (210 x 148.5)
+            </span>
+          </div>
+
+          {boxes.map(box => (
+            <BoxWithBorder
+              key={box.id}
+              box={box}
+              activeTool={activeTool}
+              showGrid={showGrid}
+              updateBox={updateBox}
+              bringToFront={bringToFront}
+              deleteBox={deleteBox}
+              onFocus={onFocus}
+              onCopy={onCopyBox}
+            />
+          ))}
         </div>
       </div>
-      
+
       {/* Indicador de "Vira" se for página par (simulando fim da folha A4) */}
       {(index + 1) % 2 === 0 && !isLast && (
         <div className="h-px w-full border-t-4 border-slate-300/30 border-dotted my-4 relative no-print">
@@ -963,8 +972,8 @@ const Editor: React.FC<EditorProps> = ({
       // Ignora a colagem de bloco se o foco estiver dentro de um campo de texto/editor
       const activeEl = document.activeElement;
       const isEditingText = activeEl && (
-        activeEl.tagName === 'INPUT' || 
-        activeEl.tagName === 'TEXTAREA' || 
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
         activeEl.hasAttribute('contenteditable') ||
         activeEl.closest('[contenteditable]')
       );
@@ -1022,24 +1031,24 @@ const Editor: React.FC<EditorProps> = ({
 
   const handleExportPdf = async () => {
     const html = generatePrintableHtml(pages, { disciplina, assunto, titulo, subtitulo });
-    
+
     try {
       // Importa dinamicamente para evitar erros de SSR no Next.js
       const html2pdf = (await import('html2pdf.js')).default;
-      
+
       const opt = {
-        margin:       5, // 5mm de margem de segurança
-        filename:     `${titulo || 'documento'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, 
+        margin: 5, // 5mm de margem de segurança
+        filename: `${titulo || 'documento'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
           useCORS: true,
           letterRendering: true, // Ajuda a manter o espaçamento das fontes
         },
         // Formato configurado para A5 paisagem, como no CSS
-        jsPDF:        { unit: 'mm', format: 'a5', orientation: 'landscape' }
+        jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }
       };
-      
+
       html2pdf().set(opt).from(html).save();
     } catch (e) {
       console.error('Erro ao gerar PDF:', e);
@@ -1049,11 +1058,11 @@ const Editor: React.FC<EditorProps> = ({
 
   const handleInsertImage = (src: string) => {
     const currentContent = pages[currentPage] || '';
-    
+
     // Deslocamento para evitar que as imagens fiquem perfeitamente sobrepostas
     const boxCount = (currentContent.match(/class="canvas-box"/g) || []).length;
     const offset = 40 + (boxCount * 20);
-    
+
     const newBox = `<div class="canvas-box" data-id="box-${Date.now()}" style="position: absolute; left: ${offset}px; top: ${offset}px; width: 300px; height: 300px; z-index: 1;"><img src="${src}" alt="Imagem" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`;
     onUpdatePage(currentPage, `${currentContent}${newBox}`);
   };
@@ -1103,16 +1112,16 @@ const Editor: React.FC<EditorProps> = ({
     <div className="flex flex-col h-full overflow-hidden bg-slate-50">
       {/* Header Group (Fixed at top) */}
       <div className="relative flex flex-col shrink-0 z-[100] no-print bg-white">
-        <Toolbar 
-          editor={activeEditor} 
-          onSave={onSave} 
+        <Toolbar
+          editor={activeEditor}
+          onSave={onSave}
           onPrint={onPrint}
           onExportHtml={handleExportHtml}
           onExportPdf={handleExportPdf}
           onInsertImage={handleInsertImage}
-          isSaving={isSaving} 
-          saveSuccess={saveSuccess} 
-          onClear={() => {}} 
+          isSaving={isSaving}
+          saveSuccess={saveSuccess}
+          onClear={() => { }}
           isPenActive={isPenActive}
           onTogglePen={() => {
             setIsPenActive(!isPenActive);
@@ -1129,7 +1138,7 @@ const Editor: React.FC<EditorProps> = ({
           }}
           penColor={penColor}
           onPenColorChange={setPenColor}
-          onClearDrawings={() => {}} 
+          onClearDrawings={() => { }}
           showGrid={showGrid}
           onToggleGrid={() => setShowGrid(!showGrid)}
           disciplina={disciplina}
@@ -1139,44 +1148,44 @@ const Editor: React.FC<EditorProps> = ({
 
         {/* Editor Metadata Bar */}
         <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
-           <div className="flex flex-col gap-1 max-w-2xl">
-             <input 
-                value={disciplina} 
-                onChange={e => onMetadataChange({ disciplina: capitalizeFirst(e.target.value) })} 
-                className="text-[10px] font-black text-blue-500 bg-transparent outline-none uppercase tracking-widest" 
-                placeholder="DISCIPLINA" 
-             />
-             <div className="flex items-center gap-3">
-                <input 
-                  value={assunto} 
-                  onChange={e => onMetadataChange({ assunto: capitalizeFirst(e.target.value) })} 
-                  className="font-bold text-slate-400 bg-transparent outline-none uppercase text-xs w-32" 
-                  placeholder="ASSUNTO" 
-                />
-                <span className="text-slate-200">|</span>
-                <input 
-                  value={titulo} 
-                  onChange={e => onMetadataChange({ titulo: capitalizeFirst(e.target.value) })} 
-                  className="font-black text-slate-800 text-2xl bg-transparent outline-none uppercase tracking-tight flex-1" 
-                  placeholder="TÍTULO DO DOCUMENTO" 
-                />
-                <span className="text-slate-200">|</span>
-                <input 
-                  value={subtitulo} 
-                  onChange={e => onMetadataChange({ subtitulo: capitalizeFirst(e.target.value) })} 
-                  className="font-medium text-slate-400 bg-transparent outline-none uppercase text-xs w-48" 
-                  placeholder="SUBTÍTULO" 
-                />
-             </div>
-           </div>
-           
-           <button 
-             onClick={onAddPage}
-             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
-           >
-             <Plus size={18} />
-             ADICIONAR PÁGINA
-           </button>
+          <div className="flex flex-col gap-1 max-w-2xl">
+            <input
+              value={disciplina}
+              onChange={e => onMetadataChange({ disciplina: capitalizeFirst(e.target.value) })}
+              className="text-[10px] font-black text-blue-500 bg-transparent outline-none uppercase tracking-widest"
+              placeholder="DISCIPLINA"
+            />
+            <div className="flex items-center gap-3">
+              <input
+                value={assunto}
+                onChange={e => onMetadataChange({ assunto: capitalizeFirst(e.target.value) })}
+                className="font-bold text-slate-400 bg-transparent outline-none uppercase text-xs w-32"
+                placeholder="ASSUNTO"
+              />
+              <span className="text-slate-200">|</span>
+              <input
+                value={titulo}
+                onChange={e => onMetadataChange({ titulo: capitalizeFirst(e.target.value) })}
+                className="font-black text-slate-800 text-2xl bg-transparent outline-none uppercase tracking-tight flex-1"
+                placeholder="TÍTULO DO DOCUMENTO"
+              />
+              <span className="text-slate-200">|</span>
+              <input
+                value={subtitulo}
+                onChange={e => onMetadataChange({ subtitulo: capitalizeFirst(e.target.value) })}
+                className="font-medium text-slate-400 bg-transparent outline-none uppercase text-xs w-48"
+                placeholder="SUBTÍTULO"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={onAddPage}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-95"
+          >
+            <Plus size={18} />
+            ADICIONAR PÁGINA
+          </button>
         </div>
       </div>
 
@@ -1185,37 +1194,37 @@ const Editor: React.FC<EditorProps> = ({
           {pages.map((content, idx) => {
             const isActive = currentPage === idx;
             return (
-            <Paper
-              key={idx}
-              index={idx}
-              content={content}
-              isActive={isActive}
-              onUpdate={onUpdatePage}
-              onFocus={setActiveEditor}
-              onDeselect={() => {
-                if (activeEditor) {
-                  activeEditor.commands.blur();
-                  setActiveEditor(null);
-                }
-              }}
-              isPenActive={isPenActive}
-              penColor={penColor}
-              disciplina={disciplina}
-              assunto={assunto}
-              titulo={titulo}
-              subtitulo={subtitulo}
-              onRemove={() => onRemovePage(idx)}
-              onMove={(direction: 'up' | 'down') => onMovePage(idx, direction)}
-              isFirst={idx === 0}
-              isLast={idx === pages.length - 1}
-              showGrid={showGrid}
-              onCopyBox={handleCopyBox}
-              onPasteBox={() => handlePasteBox(idx)}
-              onMouseEnter={() => setPasteTarget(idx)}
-              onPageClick={() => onPageChange(idx)}
-              hasClipboard={hasLocalClipboard}
-              activeTool={activeTool}
-            />
+              <Paper
+                key={idx}
+                index={idx}
+                content={content}
+                isActive={isActive}
+                onUpdate={onUpdatePage}
+                onFocus={setActiveEditor}
+                onDeselect={() => {
+                  if (activeEditor) {
+                    activeEditor.commands.blur();
+                    setActiveEditor(null);
+                  }
+                }}
+                isPenActive={isPenActive}
+                penColor={penColor}
+                disciplina={disciplina}
+                assunto={assunto}
+                titulo={titulo}
+                subtitulo={subtitulo}
+                onRemove={() => onRemovePage(idx)}
+                onMove={(direction: 'up' | 'down') => onMovePage(idx, direction)}
+                isFirst={idx === 0}
+                isLast={idx === pages.length - 1}
+                showGrid={showGrid}
+                onCopyBox={handleCopyBox}
+                onPasteBox={() => handlePasteBox(idx)}
+                onMouseEnter={() => setPasteTarget(idx)}
+                onPageClick={() => onPageChange(idx)}
+                hasClipboard={hasLocalClipboard}
+                activeTool={activeTool}
+              />
             );
           })}
         </div>
@@ -1228,7 +1237,7 @@ const Editor: React.FC<EditorProps> = ({
           {toastMsg}
         </div>
       )}
-      
+
       {/* Footer Info */}
       <div className="h-8 bg-slate-900 text-white flex items-center px-4 justify-between text-[10px] font-mono border-t border-slate-800 z-50">
         <div className="flex-1 flex items-center gap-2">
@@ -1236,7 +1245,7 @@ const Editor: React.FC<EditorProps> = ({
           <span className="text-blue-400 font-bold">{pages.length}</span>
           <span className="text-slate-600 ml-2">({Math.ceil(pages.length / 2)} Folhas A4)</span>
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center">
           {renderAutosaveIndicator()}
         </div>

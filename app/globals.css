@@ -407,6 +407,7 @@ body {
   .print-sheet {
     width: 210mm !important;
     max-width: 210mm !important;
+    height: 297mm !important;
     min-height: 297mm !important;
     box-sizing: border-box !important;
     margin: 0 auto !important;
@@ -424,8 +425,8 @@ body {
   .print-page {
     width: 210mm !important;
     max-width: 210mm !important;
-    height: calc((297mm - 15mm) / 2) !important;
-    min-height: calc((297mm - 15mm) / 2) !important;
+    height: 148.5mm !important;
+    min-height: 148.5mm !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     overflow: hidden !important;
@@ -435,12 +436,24 @@ body {
     box-sizing: border-box !important;
   }
 
-  .print-sheet .print-page:nth-child(odd) {
-    padding-bottom: 15mm !important;
+  .print-page::after {
+    content: '';
+    position: absolute;
+    inset: var(--canvas-padding);
+    border: 1px dashed #cbd5e1;
+    pointer-events: none;
+    z-index: 20;
   }
 
-  .print-sheet .print-page:nth-child(even) {
-    padding-top: 20mm !important;
+  .print-page + .print-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed #94a3b8;
+    pointer-events: none;
+    z-index: 21;
   }
 
   .print-content {
@@ -475,7 +488,7 @@ body {
 
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 0;
   }
 }
 

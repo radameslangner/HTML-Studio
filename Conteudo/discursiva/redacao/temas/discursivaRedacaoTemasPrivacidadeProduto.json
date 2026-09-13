@@ -1,0 +1,13 @@
+{
+  "disciplina": "discursiva",
+  "assunto": "redacao",
+  "titulo": "temas",
+  "subtitulo": "privacidade - produto",
+  "slug": "discursivaRedacaoTemasPrivacidadeProduto",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">discursiva|redacao|tema|privacidade - produto</div><div class=\"canvas-box\" data-id=\"box-17886946334880.06967532717398695\" style=\"position: absolute; left: 20px; top: 30px; width: 761px; height: 459px; z-index: 14;  \"><p style=\"line-height: 3;\"><span style=\"color: rgb(210, 81, 81);\"><strong><em>Como privacidade vira produto </em></strong></span></p><ul><li><p style=\"line-height: 1.75;\">Moeda de troca por serviços: Redes sociais concedem acesso \"gratuito\" aos seus erviços, mas exigem em troca seu hitórico de navegação, localização e gostos pessoais.</p></li><li><p style=\"line-height: 1.75;\">Perfilamento pra anúncio: As empresas agrupam seus comportamentos em perfis detalhados e vendem esses grupos para marcas que desejam fazer anúncios direcionados.</p></li><li><p style=\"line-height: 1.75;\">Corretora de dados (Data Brokers): Existem empresas que apenas coletam, cruzam e vendem informações de cidadãos para seguradoras, bancos e outras corporações.</p></li><li><p style=\"line-height: 1.75;\">Pagamento para ter privavidade: Algumas plataformas criam planos pagos onde a principal vantagem é não exibir anúncios e não rastrear o usuário, transformando o direito básico à privacidade em um ítem de luxo acessível apena a quem pode pagar.</p></li></ul><p style=\"line-height: 1.75;\"></p></div>",
+    "<div class=\"metadata-header\" style=\"display:none;\">discursiva|redacao|tema|privacidade - produto</div><div class=\"canvas-box\" data-id=\"box-17886956709240.08871692945678455\" style=\"position: absolute; left: 20px; top: 30px; width: 758px; height: 471px; z-index: 6;  \"><p>Dicas para protege sua privacidade online</p><p></p><ul><li><p>Use navegadores focados em privacidade: Opte pelo Brave e Farefox, que boqueiam rastreadores por padrão, em vez do Google Chrome.</p></li><li><p>Mude o buscador padrão: Substitua o Google pelo DuckDuckGo ou Startpage, que não guardam seu histórico de buscas.</p></li><li><p>Limpe cookies e cache: Configure seu navegador para apagar esses dados automaticamente ao fechar a janela do navegador.</p></li></ul><p></p><p></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-09-07T12:04:54.744Z"
+}

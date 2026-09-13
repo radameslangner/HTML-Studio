@@ -1,0 +1,12 @@
+{
+  "disciplina": "portugues",
+  "assunto": "concordancia",
+  "titulo": "teoria",
+  "subtitulo": "logica",
+  "slug": "portuguesConcordanciaTeoriaLogica",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">portugues|concordancia|teoria|logica</div><div class=\"canvas-box\" data-id=\"box-17886977033930.1310906050327546\" style=\"position: absolute; left: 20px; top: 30px; width: 95%; height: 90%; z-index: 19;  \"><p style=\"line-height: 3;\"><span style=\"color: rgb(210, 81, 81);\"><strong><em>Concordância </em></strong></span></p><p style=\"line-height: 2;\">Termo partitivo + determinante no plural</p><p style=\"line-height: 2;\">A maioria das pessoas _________ (<span style=\"color: rgb(210, 81, 81);\"><strong><em>chegou / chegaram</em></strong></span>) (as duas estão corretas ).</p><p style=\"line-height: 2;\">Núcleo do sujeito não é termo preposicionado ( A maioria - núcleo do sujeito ).</p><p style=\"line-height: 2;\">Núcleo do sujeito no plural indefinido (além de concordar com o núcleo, concorda tambem com o determinante - <strong><em>das pessoas</em></strong>).</p><p style=\"line-height: 2;\"></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-09-06T13:02:33.107Z"
+}
