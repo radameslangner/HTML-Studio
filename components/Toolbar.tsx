@@ -42,7 +42,9 @@ import {
   FileCode,
   Grid,
   Sliders,
-  ArrowUpRight
+  ArrowUpRight,
+  Paintbrush,
+  ClipboardPaste
 } from 'lucide-react';
 
 interface ToolbarProps {
@@ -90,6 +92,12 @@ const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 30, 36, 48, 64];
 
 const LINE_HEIGHTS = [0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0];
 
+interface CopiedTextFormat {
+  marks: { type: string; attrs: Record<string, unknown> | null }[];
+  nodeType: 'paragraph' | 'heading';
+  nodeAttrs: Record<string, unknown>;
+}
+
 // Cores padrão iniciais (valores estabelecidos em Hex/RGB)
 const DEFAULT_COLORS = [
   { name: 'Preto Profundo', value: '#1e293b', rgb: 'rgb(30, 41, 59)' },
@@ -126,6 +134,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const [customLineHeight, setCustomLineHeight] = useState('1.5');
   const [lineHeightPos, setLineHeightPos] = useState<{ top: number; left: number } | null>(null);
   const lineHeightButtonRef = useRef<HTMLDivElement>(null);
+  const [copiedTextFormat, setCopiedTextFormat] = useState<CopiedTextFormat | null>(null);
 
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableMenuPos, setTableMenuPos] = useState<{ top: number; left: number } | null>(null);
@@ -171,7 +180,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
           .replace(/margin-left\s*:[^;]+;?/g, '')
           .replace(/margin-right\s*:[^;]+;?/g, '')
           .trim();
-        
+
         let alignStyle = '';
         if (align === 'center') {
           alignStyle = 'margin-left:auto;margin-right:auto;';
@@ -180,7 +189,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         } else {
           alignStyle = 'margin-left:0;margin-right:auto;';
         }
-        
+
         const newStyle = `${alignStyle}${cleanedStyle ? ' ' + cleanedStyle : ''}`;
         const tr = state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, style: newStyle });
         view.dispatch(tr);
@@ -426,19 +435,19 @@ const Toolbar: React.FC<ToolbarProps> = ({
       formData.append('disciplina', disciplina);
       formData.append('assunto', assunto);
       formData.append('titulo', titulo);
-      
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
-      
+
       if (!data.success) {
         console.error('Error uploading image:', data.error);
         alert('Erro ao enviar imagem.');
         return;
       }
-      
+
       const src = data.url;
 
       // Sempre insere como um novo bloco na página (CanvasBox) para permitir redimensionamento fácil
@@ -497,6 +506,39 @@ const Toolbar: React.FC<ToolbarProps> = ({
     const currentSize = getCurrentFontSize();
     const prevSize = [...FONT_SIZES].reverse().find(s => s < currentSize) || FONT_SIZES[0];
     (editor?.chain().focus() as any).setFontSize(`${prevSize}px`).run();
+  };
+
+  const copyTextFormat = () => {
+    if (!editor) return;
+
+    const { state } = editor;
+    const { $from } = state.selection;
+    const block = $from.parent;
+    const marks = $from.marks().map(mark => ({
+      type: mark.type.name,
+      attrs: mark.attrs ? { ...mark.attrs } : null,
+    }));
+
+    if (block.type.name !== 'paragraph' && block.type.name !== 'heading') {
+      return;
+    }
+
+    setCopiedTextFormat({
+      marks,
+      nodeType: block.type.name,
+      nodeAttrs: { ...block.attrs },
+    });
+  };
+
+  const applyTextFormat = () => {
+    if (!editor || !copiedTextFormat) return;
+
+    const chain = editor.chain().focus().unsetAllMarks();
+    for (const mark of copiedTextFormat.marks) {
+      chain.setMark(mark.type, mark.attrs || {});
+    }
+    chain.setNode(copiedTextFormat.nodeType, copiedTextFormat.nodeAttrs).run();
+    setCopiedTextFormat(null);
   };
 
   // isActive('table') is true even when cursor is at the table root, which causes
@@ -605,6 +647,28 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       <Divider />
 
+      {/* 3.5 Pincel de formatação */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          disabled={!editor}
+          onClick={copyTextFormat}
+          isActive={!!copiedTextFormat}
+          title="Copiar formatação do texto selecionado"
+        >
+          <Paintbrush size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          disabled={!editor || !copiedTextFormat}
+          onClick={applyTextFormat}
+          isActive={!!copiedTextFormat}
+          title={copiedTextFormat ? 'Aplicar formatação copiada' : 'Copiar uma formatação primeiro'}
+        >
+          <ClipboardPaste size={16} />
+        </ToolbarButton>
+      </div>
+
+      <Divider />
+
       {/* 4. Formatação Básica */}
       <div className="flex items-center gap-0.5">
         <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleBold().run()} isActive={editor?.isActive('bold')} title="Negrito">
@@ -622,25 +686,25 @@ const Toolbar: React.FC<ToolbarProps> = ({
         <div className="w-px h-4 bg-slate-200 mx-0.5" />
         <ToolbarButton disabled={!editor} onClick={() => {
           if (!editor) return;
-          
+
           // Executamos de forma independente para que, se um falhar (ex: não tem alinhamento),
           // os outros continuem funcionando sem abortar a transação.
           editor.commands.unsetAllMarks();
-          
+
           // Muitas vezes unsetAllMarks não limpa textStyle completamente. Limpamos explicitamente:
           try { editor.commands.unsetColor(); } catch(e) {}
           try { (editor.commands as any).unsetFontSize(); } catch(e) {}
           try { editor.commands.unsetFontFamily(); } catch(e) {}
-          
+
           if (editor.can().unsetTextAlign()) {
             editor.commands.unsetTextAlign();
           }
-          
+
           // Se o texto colado for um Cabeçalho (H1-H3), Citação ou Bloco de Código,
           // ele é um 'Node' e não uma 'Mark', então precisamos forçar a conversão para Parágrafo.
           // setParagraph converte o bloco atual sem destruir tabelas ou o Canvas.
           try { editor.commands.setParagraph(); } catch(e) {}
-          
+
           // Limpa altura de linha diretamente nos atributos dos nós suportados
           try {
             editor.commands.updateAttributes('paragraph', { lineHeight: null });
@@ -682,7 +746,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-1">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Caracteres Especiais</span>
-                <button 
+                <button
                   onClick={() => setShowSpecialCharsDialog(false)}
                   className="text-xs text-slate-400 hover:text-slate-600 font-bold"
                 >

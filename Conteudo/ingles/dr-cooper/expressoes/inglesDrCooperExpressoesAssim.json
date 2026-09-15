@@ -1,0 +1,12 @@
+{
+  "disciplina": "INGLES",
+  "assunto": "Dr. Cooper",
+  "titulo": "expressoes",
+  "subtitulo": "assim",
+  "slug": "inglesDrCooperExpressoesAssim",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">INGLES|Dr. Cooper|expressoes|assim</div><div class=\"canvas-box\" data-id=\"box-17893265301220.8049626464716293\" style=\"position: absolute; left: 20px; top: 30px; width: 95%; height: 90%; z-index: 18;  \"><p style=\"line-height: 3;\"><span style=\"color: rgb(239, 68, 68); font-size: 18px;\"><strong><em>mesmo assim</em></strong></span></p><p style=\"line-height: 2;\">I studied a lot but still i did badly on the test.</p><p style=\"line-height: 2;\">Eu estudei bastante, mas mesmo assim eu fui mal na prova.</p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-09-13T19:14:19.405Z"
+}

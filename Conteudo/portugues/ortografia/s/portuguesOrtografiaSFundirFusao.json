@@ -1,0 +1,12 @@
+{
+  "disciplina": "portugues",
+  "assunto": "ortografia",
+  "titulo": "S",
+  "subtitulo": "fundir - fusao",
+  "slug": "portuguesOrtografiaSFundirFusao",
+  "pages": [
+    "<div class=\"metadata-header\" style=\"display:none;\">portugues|ortografia|S|fundir - fusao</div><div class=\"canvas-box\" data-id=\"box-17893901265690.53336614099466\" style=\"position: absolute; left: 20px; top: 30px; width: 95%; height: 90%; z-index: 7;  \"><p style=\"line-height: 2;\">Uma boa regra prática é: quando o verbo termina em <strong>-fundir</strong>, o substantivo correspondente costuma apresentar <strong>-fusão</strong>:</p><blockquote><p style=\"line-height: 2;\">difundir → difusão<br>confundir → confusão<br>infundir → infusão</p><p style=\"line-height: 2;\">pro + fusão = profusão</p></blockquote><p style=\"line-height: 2;\"></p></div>"
+  ],
+  "status": "study",
+  "updatedAt": "2026-09-14T12:50:56.541Z"
+}
