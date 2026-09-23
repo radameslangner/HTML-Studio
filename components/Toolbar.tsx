@@ -57,6 +57,8 @@ interface ToolbarProps {
   onInsertImage?: (src: string) => void;
   isSaving?: boolean;
   saveSuccess?: boolean;
+  isPenActive?: boolean;
+  onTogglePen?: () => void;
   activeTool: 'select' | 'pen' | 'arrow';
   onChangeActiveTool: (tool: 'select' | 'pen' | 'arrow') => void;
   penColor: string;
@@ -72,6 +74,11 @@ interface ToolbarProps {
 
 const ToolbarButton = ({ onClick, isActive, title, children, disabled = false, danger = false, draggable = false, onDragStart }: any) => (
   <button
+    onMouseDown={(e) => {
+      if (!draggable) {
+        e.preventDefault();
+      }
+    }}
     onClick={onClick}
     disabled={!!disabled}
     draggable={draggable}
@@ -647,6 +654,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       <Divider />
 
+
+      {/* 4. Formatação Básica */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleBold().run()} isActive={editor?.isActive('bold')} title="Negrito">
+          <Bold size={16} />
+        </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleItalic().run()} isActive={editor?.isActive('italic')} title="Itálico">
+          <Italic size={16} />
+        </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleUnderline().run()} isActive={editor?.isActive('underline')} title="Sublinhado">
+          <Underline size={16} />
+        </ToolbarButton>
+        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleStrike().run()} isActive={editor?.isActive('strike')} title="Riscado">
+          <Strikethrough size={16} />
+        </ToolbarButton>
+
+<Divider />
       {/* 3.5 Pincel de formatação */}
       <div className="flex items-center gap-0.5">
         <ToolbarButton
@@ -667,22 +691,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </ToolbarButton>
       </div>
 
-      <Divider />
-
-      {/* 4. Formatação Básica */}
-      <div className="flex items-center gap-0.5">
-        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleBold().run()} isActive={editor?.isActive('bold')} title="Negrito">
-          <Bold size={16} />
-        </ToolbarButton>
-        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleItalic().run()} isActive={editor?.isActive('italic')} title="Itálico">
-          <Italic size={16} />
-        </ToolbarButton>
-        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleUnderline().run()} isActive={editor?.isActive('underline')} title="Sublinhado">
-          <Underline size={16} />
-        </ToolbarButton>
-        <ToolbarButton disabled={!editor} onClick={() => editor?.chain().focus().toggleStrike().run()} isActive={editor?.isActive('strike')} title="Riscado">
-          <Strikethrough size={16} />
-        </ToolbarButton>
         <div className="w-px h-4 bg-slate-200 mx-0.5" />
         <ToolbarButton disabled={!editor} onClick={() => {
           if (!editor) return;

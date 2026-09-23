@@ -226,16 +226,21 @@ const BorderPanel = ({ box, onUpdate, onClose }: { box: CanvasBox; onUpdate: (pr
   const [style, setStyle] = useState(box.borderStyle || 'solid');
   const [radius, setRadius] = useState(box.borderRadius ?? 0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
+  }, []);
 
   const apply = useCallback((c: string, w: number, s: string, r: number) => {
     onUpdate({ borderColor: c, borderWidth: w, borderStyle: s, borderRadius: r });
@@ -393,7 +398,7 @@ const CustomTable = Table.extend({
     return {
       ...parentOptions,
       View: CustomTableView,
-    } as TableOptions;
+    } as unknown as TableOptions;
   }
 });
 
@@ -425,13 +430,17 @@ const CustomImage = Image.extend({
   }
 });
 
+const MINI_EDITOR_EXTENSIONS = [
+  StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
+  TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
+];
+
 const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: any, onFocus: any }) => {
+  const lastEmittedContentRef = useRef(box.content);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
-      TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
-    ],
+    extensions: MINI_EDITOR_EXTENSIONS,
     content: box.content,
     editorProps: {
       attributes: {
@@ -440,7 +449,9 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
     },
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
-      updateBox(box.id, { content: editor.getHTML() });
+      const html = editor.getHTML();
+      lastEmittedContentRef.current = html;
+      updateBox(box.id, { content: html });
     },
     onFocus: ({ editor }) => {
       onFocus(editor);
@@ -450,6 +461,9 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
   // Sincronizar conteúdo se mudar externamente (ex: carregar arquivo)
   useEffect(() => {
     if (editor) {
+      if (box.content === lastEmittedContentRef.current) {
+        return;
+      }
       const currentNormalized = normalizeHtmlForComparison(editor.getHTML());
       const incomingNormalized = normalizeHtmlForComparison(box.content);
 
@@ -458,6 +472,7 @@ const MiniEditor = ({ box, updateBox, onFocus }: { box: CanvasBox, updateBox: an
         if (editor.isFocused || editor.view.composing) {
           return;
         }
+        lastEmittedContentRef.current = box.content;
         editor.commands.setContent(box.content);
       }
     }
@@ -1039,14 +1054,14 @@ const Editor: React.FC<EditorProps> = ({
       const opt = {
         margin: 5, // 5mm de margem de segurança
         filename: `${titulo || 'documento'}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
           letterRendering: true, // Ajuda a manter o espaçamento das fontes
         },
         // Formato configurado para A5 paisagem, como no CSS
-        jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }
+        jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' as const }
       };
 
       html2pdf().set(opt).from(html).save();

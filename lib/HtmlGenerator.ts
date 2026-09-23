@@ -183,7 +183,7 @@ export const generatePrintableHtml = (
             boxes.forEach(box => {
               // Pega o innerHTML e remove apenas espaços excessivos no INÍCIO e FIM
               // Preserva as quebras de linha criadas durante a edição
-              let inner = box.innerHTML
+              const inner = box.innerHTML
                 .replace(/^\s+/, '') // Remove espaços/quebras no início
                 .replace(/\s+$/, ''); // Remove espaços/quebras no final
               

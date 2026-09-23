@@ -356,7 +356,7 @@ export default function Home() {
     setStatus(newStatus);
   };
 
-  // Autosave effect with debounce
+  // Autosave effect with debounce and abort controller
   useEffect(() => {
     if (!slug) {
       setAutosaveStatus('disabled');
@@ -376,17 +376,23 @@ export default function Home() {
       return;
     }
 
+    const controller = new AbortController();
+
     const timer = setTimeout(async () => {
       setAutosaveStatus('saving');
       try {
         const res = await fetch('/api/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: currentDataStr
+          body: currentDataStr,
+          signal: controller.signal
         });
+
+        if (controller.signal.aborted) return;
 
         const data = await res.json();
         if (data.success) {
+          if (controller.signal.aborted) return;
           setAutosaveStatus('saved');
           setSlug(data.slug);
           
@@ -397,15 +403,19 @@ export default function Home() {
             setAutosaveStatus(prev => prev === 'saved' ? 'idle' : prev);
           }, 3000);
         } else {
-          setAutosaveStatus('error');
+          if (!controller.signal.aborted) setAutosaveStatus('error');
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
         console.error('Autosave error:', error);
         setAutosaveStatus('error');
       }
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [pages, status, titulo, disciplina, assunto, subtitulo, slug]);
 
   return (
