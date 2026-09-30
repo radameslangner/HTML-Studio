@@ -456,6 +456,10 @@ body {
     z-index: 21;
   }
 
+  .print-content .ProseMirror {
+    white-space: break-spaces !important;
+  }
+
   .print-content {
     overflow: visible !important;
   }

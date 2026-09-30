@@ -19,6 +19,9 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
   Highlighter,
   Link as LinkIcon,
   Image as ImageIcon,
@@ -30,6 +33,8 @@ import {
   Terminal,
   Columns,
   Rows,
+  Combine,
+  Split,
   Trash2,
   CheckCircle2,
   Pilcrow,
@@ -114,8 +119,18 @@ const DEFAULT_COLORS = [
   { name: 'Roxo Elétrico', value: '#8b5cf6', rgb: 'rgb(139, 92, 246)' },
 ];
 
-const SPECIAL_CHARS = [
-  'º', 'ª', '±', '×', '÷', '≠', '≈', '≤', '≥', '°', 'π', 'α', 'β', 'γ', 'Δ', 'θ', 'λ', 'μ', '→', '⇒', '∞', '✓', '✗', '★'
+const SPECIAL_CHAR_GROUPS = [
+  {
+    label: 'Setas',
+    chars: ['↑', '↓', '←', '→', '↖', '↗', '↘', '↙', '↔', '↕', '⇐', '⇒', '⇑', '⇓', '⇔', '⇕', '↦', '↪', '↩'],
+  },
+  {
+    label: 'Símbolos',
+    chars: [
+      'º', 'ª', '±', '×', '÷', '≠', '≈', '≤', '≥', '°', 'π', 'α', 'β', 'γ', 'Δ', 'θ', 'λ', 'μ', '∞',
+      '✓', '✗', '★', '☆', '✦', '✧', '❖', '♥', '♡', '•', '◦', '◆', '◇', '■', '□', '§', '¶', '†', '‡',
+    ],
+  },
 ];
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -148,6 +163,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
   const tableMenuButtonRef = useRef<HTMLDivElement>(null);
   const [tableWidth, setTableWidthState] = useState(100);
   const [tableAlign, setTableAlignState] = useState<'left' | 'center' | 'right'>('left');
+  const [cellVerticalAlign, setCellVerticalAlignState] = useState<'top' | 'middle' | 'bottom'>('middle');
 
   const setTableWidth = (pct: number) => {
     if (!editor) return;
@@ -207,6 +223,13 @@ const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
+  const setCellVerticalAlign = (align: 'top' | 'middle' | 'bottom') => {
+    if (!editor) return;
+    if (editor.commands.setCellAttribute('verticalAlign', align)) {
+      setCellVerticalAlignState(align);
+    }
+  };
+
   const openTableMenu = () => {
     if (tableMenuButtonRef.current) {
       const rect = tableMenuButtonRef.current.getBoundingClientRect();
@@ -219,6 +242,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
       let depth = state.doc.resolve(from).depth;
       while (depth > 0) {
         const node = state.doc.resolve(from).node(depth);
+        if (node.type.name === 'tableCell' || node.type.name === 'tableHeader') {
+          setCellVerticalAlignState(node.attrs.verticalAlign || 'middle');
+        }
         if (node.type.name === 'table') {
           const style: string = node.attrs?.style || '';
           const match = style.match(/width\s*:\s*([\d.]+)%/);
@@ -750,7 +776,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
         </ToolbarButton>
 
         {showSpecialCharsDialog && (
-          <div className="absolute top-full left-0 mt-2 z-50 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+          <div className="absolute top-full left-0 mt-2 z-50 w-80 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between border-b border-slate-100 pb-1 mb-1">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">Caracteres Especiais</span>
@@ -761,17 +787,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   Fechar
                 </button>
               </div>
-              <div className="grid grid-cols-6 gap-1">
-                {SPECIAL_CHARS.map(char => (
-                  <button
-                    key={char}
-                    onClick={() => insertSpecialChar(char)}
-                    className="h-8 w-8 rounded-lg border border-slate-100 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 text-sm font-semibold flex items-center justify-center transition-all active:scale-90"
-                  >
-                    {char}
-                  </button>
-                ))}
-              </div>
+              {SPECIAL_CHAR_GROUPS.map(group => (
+                <div key={group.label}>
+                  <span className="mb-1 block text-[10px] font-semibold text-slate-400">{group.label}</span>
+                  <div className="grid grid-cols-7 gap-1">
+                    {group.chars.map(char => (
+                      <button
+                        key={char}
+                        onClick={() => insertSpecialChar(char)}
+                        aria-label={`Inserir ${char}`}
+                        className="h-8 w-8 rounded-lg border border-slate-100 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 text-sm font-semibold flex items-center justify-center transition-all active:scale-90"
+                      >
+                        {char}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -1199,6 +1231,31 @@ const Toolbar: React.FC<ToolbarProps> = ({
               </div>
             </div>
 
+            {/* Seção: Células */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Combine size={10} /> Células
+              </p>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().mergeCells().run())}
+                  disabled={!editor?.can().mergeCells()}
+                  title="Mesclar células selecionadas"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                >
+                  <Combine size={14} /> Mesclar células
+                </button>
+                <button
+                  onClick={() => tableAction(() => editor?.chain().focus().splitCell().run())}
+                  disabled={!editor?.can().splitCell()}
+                  title="Dividir célula mesclada"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
+                >
+                  <Split size={14} /> Dividir célula
+                </button>
+              </div>
+            </div>
+
             {/* Seção: Alinhamento */}
             <div className="px-3 py-2 border-b border-slate-100">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
@@ -1238,6 +1295,35 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 >
                   <AlignRight size={14} />
                 </button>
+              </div>
+            </div>
+
+            {/* Alinhamento vertical da célula */}
+            <div className="px-3 py-2 border-b border-slate-100">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                <AlignVerticalJustifyCenter size={10} /> Alinhamento vertical da célula
+              </p>
+              <div className="flex gap-1">
+                {([
+                  { value: 'top', label: 'Alinhar ao topo', Icon: AlignVerticalJustifyStart },
+                  { value: 'middle', label: 'Centralizar verticalmente', Icon: AlignVerticalJustifyCenter },
+                  { value: 'bottom', label: 'Alinhar à base', Icon: AlignVerticalJustifyEnd },
+                ] as const).map(({ value, label, Icon }) => (
+                  <button
+                    onMouseDown={event => event.preventDefault()}
+                    key={value}
+                    onClick={() => setCellVerticalAlign(value)}
+                    className={`flex-1 py-1.5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
+                      cellVerticalAlign === value
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-blue-50 hover:border-blue-300'
+                    }`}
+                    title={label}
+                    aria-label={label}
+                  >
+                    <Icon size={14} />
+                  </button>
+                ))}
               </div>
             </div>
 

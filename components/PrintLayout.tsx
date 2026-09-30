@@ -11,20 +11,13 @@ interface PrintLayoutProps {
 }
 
 /**
- * Limpa o HTML para impressão, removendo apenas elementos de interface do editor
- * e normalizando espaços em branco que podem ter acumulado indevidamente.
+ * Limpa o HTML para impressão, removendo apenas elementos de interface do editor.
  */
 function prepareHtmlForPrint(html: string): string {
   if (typeof window === 'undefined') return html;
 
-  // 1. Limpeza de espaços em branco excessivos e quebras de linha entre tags
-  // Isso evita que o navegador crie páginas extras por causa de nós de texto vazios.
-  let cleaned = html
-    .replace(/>\s+</g, '><') // Remove espaços entre tags
-    .trim();
-
   const parser = new DOMParser();
-  const doc = parser.parseFromString(cleaned, 'text/html');
+  const doc = parser.parseFromString(html, 'text/html');
 
   // Remover elementos que não devem ser impressos
   const toRemove = doc.querySelectorAll('.no-print, .box-drag-handle, .react-resizable-handle, .metadata-header');
@@ -38,7 +31,7 @@ function prepareHtmlForPrint(html: string): string {
        // Preservar apenas o que é necessário para o Tiptap (p, h1, etc)
     }
   });
-  
+
   return doc.body.innerHTML;
 }
 
@@ -66,7 +59,7 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({
                 className="print-page relative bg-white mx-auto overflow-visible"
               >
                 {/* Header de Metadados */}
-                <div 
+                <div
                   className="print-header flex items-center justify-between gap-3 border-b-2 border-slate-900 px-[var(--paper-padding-x)]"
                   style={{ height: 'var(--header-height)' }}
                 >
@@ -89,7 +82,7 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({
                   </div>
                 </div>
 
-                <div 
+                <div
                   className="print-content relative w-full overflow-visible"
                   style={{ height: 'calc(100% - var(--header-height))' }}
                 >
@@ -98,7 +91,7 @@ const PrintLayout: React.FC<PrintLayoutProps> = ({
                       __html: prepareHtmlForPrint(html),
                     }}
                     className="ProseMirror relative w-full h-full"
-                    style={{ 
+                    style={{
                       padding: '0 var(--paper-padding-x)',
                     }}
                   />

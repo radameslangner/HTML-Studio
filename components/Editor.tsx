@@ -402,6 +402,36 @@ const CustomTable = Table.extend({
   }
 });
 
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      verticalAlign: {
+        default: null,
+        parseHTML: element => element.style.verticalAlign || null,
+        renderHTML: attributes => attributes.verticalAlign
+          ? { style: `vertical-align: ${attributes.verticalAlign}` }
+          : {},
+      },
+    };
+  },
+});
+
+const CustomTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      verticalAlign: {
+        default: null,
+        parseHTML: element => element.style.verticalAlign || null,
+        renderHTML: attributes => attributes.verticalAlign
+          ? { style: `vertical-align: ${attributes.verticalAlign}` }
+          : {},
+      },
+    };
+  },
+});
+
 const CustomImage = Image.extend({
   addAttributes() {
     return {
@@ -432,7 +462,7 @@ const CustomImage = Image.extend({
 
 const MINI_EDITOR_EXTENSIONS = [
   StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
-  Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, TableHeader, TableCell,
+  Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, CustomTableHeader, CustomTableCell,
   TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
 ];
 
