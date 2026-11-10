@@ -461,7 +461,8 @@ const CustomImage = Image.extend({
 });
 
 const MINI_EDITOR_EXTENSIONS = [
-  StarterKit, Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  StarterKit.configure({ link: false, underline: false, strike: false, codeBlock: false }),
+  Underline, TextStyle, Color, FontFamily, TextAlign.configure({ types: ['heading', 'paragraph'] }),
   Highlight.configure({ multicolor: true }), Link, CustomImage, CustomTable.configure({ resizable: true }), TableRow, CustomTableHeader, CustomTableCell,
   TaskList, TaskItem, Subscript, Superscript, Strike, CodeBlock, FontSize, LineHeight, Fraction, Root, MarkdownPaste
 ];
